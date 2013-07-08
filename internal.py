@@ -72,23 +72,37 @@ def encode_delimited(s, write):
     encode_varint(len(s), write)
     write(s)
 
-def decode_zigzag(n):
+def encode_string(s, write):
+    return encode_delimited(s.encode('utf-8'), write)
+
+def decode_string(s, p):
+    _s, p = decode_delimited(s, p)
+    return _s.decode('utf-8'), p
+
+def from_zigzag(n):
     r'''
-    >>> decode_zigzag(299)
+    >>> from_zigzag(299)
     -150
     '''
     if not n & 0x1:
         return n >> 1
     return (n >> 1) ^ (~0)
 
-def encode_zigzag(n):
+def to_zigzag(n):
     r'''
-    >>> encode_zigzag(-150)
+    >>> to_zigzag(-150)
     299
     '''
     if n >= 0:
         return n << 1
     return (n << 1) ^ (~0)
+
+def decode_svarint(s, p):
+    v, p = decode_varint(s, p)
+    return from_zigzag(v), p
+
+def encode_svarint(n, write):
+    encode_varint(to_zigzag(n), write)
 
 def decode_wire_message(s):
     r'''
@@ -103,7 +117,7 @@ def decode_wire_message(s):
     (1, 150)
     >>> res[1][1].decode('utf-8')
     u'\u6d4b\u8bd5\u6d4b\u8bd5'
-    >>> decode_zigzag(res[2][1])
+    >>> from_zigzag(res[2][1])
     -150
     >>> res[3][1], res[4][1], res[5][1]
     (1, 2, 3)
@@ -173,7 +187,7 @@ def decode_message(s, decoders):
         decoder = decoders.get(findex)
         if decoder:
             value, p = decoder(s, p)
-            result.append(findex, value)
+            result.append((findex, value))
         else:
             p = skip_unknown_field(s, p, wtype)
 
@@ -185,5 +199,6 @@ def encode_message(l, write):
         encoder(value, write)
 
 if __name__ == '__main__':
-    import doctest
-    doctest.testmod()
+    #import doctest
+    #doctest.testmod()
+    print decode_wire_message('\x08\x96\x01\x12\x00\x18\xab\x02')
