@@ -1,0 +1,5 @@
+message Test {
+    required int32 a = 1;
+    required string b = 2;
+    required sint32 c = 3;
+}
