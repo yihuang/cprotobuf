@@ -101,22 +101,22 @@ class Field(object):
 
 class MetaProtoEntity(type):
     def __new__(cls, clsname, bases, attrs):
-        newcls = super(MetaProtoEntity, cls).__new__(cls, clsname, bases, attrs)
         if clsname == 'ProtoEntity':
-            return newcls
+            return super(MetaProtoEntity, cls).__new__(cls, clsname, bases, attrs)
         # _decoders for decode
         # _fields for encode
-        newcls._fields = []
-        newcls._decoders = {}
-        newcls._fieldnames = {}
+        _fields = []
+        _decoders = {}
         for name, f in attrs.items():
             if name.startswith('__'):
                 continue
-            newcls._fields.append((
+            _fields.append((
                 f.index, f.wire_type, f.encoder, name
             ))
-            newcls._decoders[f.index] = f.decoder
-            newcls._fieldnames[f.index] = name
+            _decoders[f.index] = (f.decoder, name)
+        newcls = super(MetaProtoEntity, cls).__new__(cls, clsname, bases, attrs)
+        newcls._fields = _fields
+        newcls._decoders = _decoders
         return newcls
 
 class ProtoEntity(object):
@@ -136,11 +136,19 @@ def encode_object(obj):
     return ''.join(buf)
 
 def decode_object(cls, s):
-    l = decode_message(s, cls._decoders)
+    decoders = cls._decoders
+    p = 0
     obj = cls()
-    names = cls._fieldnames
-    for findex, value in l:
-        setattr(obj, names[findex], value)
+    while p<len(s)-1:
+        wtype, findex, p = decode_tag(s, p)
+        try:
+            decoder, name = decoders[findex]
+        except KeyError:
+            p = skip_unknown_field(s, p, wtype)
+        else:
+            value, p = decoder(s, p)
+            setattr(obj, name, value)
+
     return obj
 
 if __name__ == '__main__':

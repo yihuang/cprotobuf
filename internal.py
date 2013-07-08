@@ -184,12 +184,13 @@ def decode_message(s, decoders):
     result = []
     while p<len(s)-1:
         wtype, findex, p = decode_tag(s, p)
-        decoder = decoders.get(findex)
-        if decoder:
-            value, p = decoder(s, p)
-            result.append((findex, value))
-        else:
+        try:
+            decoder, name = decoders[findex]
+        except KeyError:
             p = skip_unknown_field(s, p, wtype)
+        else:
+            value, p = decoder(s, p)
+            result.append((findex, name, value))
 
     return result
 
@@ -199,6 +200,5 @@ def encode_message(l, write):
         encoder(value, write)
 
 if __name__ == '__main__':
-    #import doctest
-    #doctest.testmod()
-    print decode_wire_message('\x08\x96\x01\x12\x00\x18\xab\x02')
+    import doctest
+    doctest.testmod()
