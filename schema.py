@@ -1,4 +1,18 @@
-#required int32 a = 1;
+# coding: utf-8
+r'''
+>>> class Test(ProtoEntity):
+...     a = Field('int32', 1)
+...     b = Field('string', 2)
+...     c = Field('sint32', 3)
+>>> obj = Test(a=150, b=u'\u6d4b\u8bd5', c=-150)
+>>> obj1 = decode_object(Test, encode_object(obj))
+>>> obj.a == obj1.a
+True
+>>> obj.b == obj1.b
+True
+>>> obj.c == obj1.c
+True
+'''
 from internal import *
 
 wire_types = {
@@ -111,3 +125,24 @@ class ProtoEntity(object):
     def __init__(self, **kwargs):
         for k,v in kwargs.items():
             setattr(self, k, v)
+
+def encode_object(obj):
+    l = []
+    for findex, wtype, encoder, name in obj._fields:
+        l.append( (findex, wtype, getattr(obj, name), encoder) )
+
+    buf = []
+    encode_message(l, buf.append)
+    return ''.join(buf)
+
+def decode_object(cls, s):
+    l = decode_message(s, cls._decoders)
+    obj = cls()
+    names = cls._fieldnames
+    for findex, value in l:
+        setattr(obj, names[findex], value)
+    return obj
+
+if __name__ == '__main__':
+    import doctest
+    doctest.testmod()
