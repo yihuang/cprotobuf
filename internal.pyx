@@ -57,10 +57,12 @@ cdef inline bytes decode_fixed(bytes s, int* p, int n):
 cdef inline encode_fixed(bytes s, write):
     write(s)
 
+cdef inline bytes c_decode_delimited(bytes s, int* p):
+    cdef int l = c_decode_varint(s, p)
+    return decode_fixed(s, p, l)
+
 cpdef inline decode_delimited(bytes s, int p):
-    cdef int l
-    l = c_decode_varint(s, &p)
-    cdef bytes s1 = decode_fixed(s, &p, l)
+    cdef bytes s1 = c_decode_delimited(s, &p)
     return s1, p
 
 cpdef inline encode_delimited(bytes s, write):
@@ -71,9 +73,8 @@ cpdef inline encode_string(s, write):
     return encode_delimited(s.encode('utf-8'), write)
 
 cpdef inline decode_string(bytes s, int p):
-    cdef bytes _s
-    _s, p = decode_delimited(s, p)
-    return _s.decode('utf-8'), p
+    cdef bytes s1 = c_decode_delimited(s, &p)
+    return s1.decode('utf-8'), p
 
 cdef inline from_zigzag(int n):
     if not n & 0x1:
@@ -101,8 +102,7 @@ cdef inline int skip_varint(bytes s, int p):
     return p + 1
 
 cdef inline int skip_delimited(bytes s, int p):
-    cdef int l
-    l, p = decode_varint(s, p)
+    cdef int l = c_decode_varint(s, &p)
     return p + l
 
 cdef inline int skip_unknown_field(bytes s, int p, int wtype):
