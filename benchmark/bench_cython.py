@@ -1,5 +1,5 @@
 # coding: utf-8
-from c_schema import ProtoEntity, Field, encode_object, decode_object
+from c_internal import ProtoEntity, Field, encode_object, decode_object
 class Test(ProtoEntity):
     a = Field('int32', 1)
     b = Field('string', 2)
@@ -8,9 +8,9 @@ class Test(ProtoEntity):
 def encode():
     for i in range(500):
         t = Test()
-        t.a = 150
+        t.a = i
         t.b = u'测试'
-        t.c = -150
+        t.c = -i
         encode_object(t)
 
 def decode():

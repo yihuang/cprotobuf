@@ -3,8 +3,7 @@ from distutils.core import setup
 from distutils.extension import Extension
 from Cython.Distutils import build_ext
 
-ext_modules = [ Extension("c_schema", ["schema.pyx"])
-              , Extension("c_internal", ["internal.pyx"])
+ext_modules = [ Extension("c_internal", ["internal.pyx"])
               ]
 
 setup(

@@ -8,9 +8,9 @@ class Test(ProtoEntity):
 def encode():
     for i in range(500):
         t = Test()
-        t.a = 150
+        t.a = i
         t.b = u'测试'
-        t.c = -150
+        t.c = -i
         encode_object(t)
 
 def decode():
