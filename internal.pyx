@@ -2,101 +2,110 @@
 # cython hack http://stackoverflow.com/questions/13976504
 STUFF = "Hi"
 
-cpdef decode_varint(bytes s, int p):
+cdef extern from "Python.h":
+    int PyString_AsStringAndSize(object obj, char **buffer, int *length)
+    object PyString_FromStringAndSize(const char *v, int len)
+
+cdef inline int c_decode_varint(bytes s, int* p):
     cdef int r = 0
     cdef int shift = 0
-    cdef char* c_s = s
-    cdef int c_l = len(s)
+    cdef char* c_s
+    cdef int c_l
+    PyString_AsStringAndSize(s, &c_s, &c_l)
     cdef char b
-    while p < c_l:
-        b = c_s[p]
+    while p[0] < c_l:
+        b = c_s[p[0]]
         r |= ((b & 0x7f) << shift)
-        p += 1
+        p[0] += 1
         if not b & 0x80:
             break
         shift += 7
         if shift >= 64:
             raise Exception('too many bytes')
 
-    return r, p
+    return r
 
-cpdef encode_varint(int n, write):
+cpdef inline decode_varint(bytes s, int p):
+    cdef int v = c_decode_varint(s, &p)
+    return v, p
+
+cdef inline c_chr(char n):
+    return PyString_FromStringAndSize(&n, 1)
+
+cpdef inline encode_varint(int n, write):
     cdef int b = n & 0x7f
     n >>= 7
     while n:
-        write(chr(0x80|b))
+        write(c_chr(0x80|b))
         b = n & 0x7f
         n >>= 7
-    write(chr(b))
+    write(c_chr(b))
 
-cdef int decode_tag(bytes s, int* p):
+cdef inline int decode_tag(bytes s, int* p):
     cdef int tag
-    cdef int c_p
-    tag, c_p = decode_varint(s, p[0])
-    p[0] = c_p
-    return tag
+    return c_decode_varint(s, p)
 
-cdef void encode_tag(int findex, int wtype, write):
+cdef inline void encode_tag(int findex, int wtype, write):
     cdef int tag = (findex << 3) | wtype
     encode_varint(tag, write)
 
-cdef bytes decode_fixed(bytes s, int* p, int n):
+cdef inline bytes decode_fixed(bytes s, int* p, int n):
     cdef bytes res = s[p[0] : p[0]+n]
     p[0] += n
     return res
 
-cdef encode_fixed(bytes s, write):
+cdef inline encode_fixed(bytes s, write):
     write(s)
 
-cpdef decode_delimited(bytes s, int p):
+cpdef inline decode_delimited(bytes s, int p):
     cdef int l
-    l, p = decode_varint(s, p)
+    l = c_decode_varint(s, &p)
     cdef bytes s1 = decode_fixed(s, &p, l)
     return s1, p
 
-cpdef encode_delimited(bytes s, write):
+cpdef inline encode_delimited(bytes s, write):
     encode_varint(len(s), write)
     write(s)
 
-cpdef encode_string(s, write):
+cpdef inline encode_string(s, write):
     return encode_delimited(s.encode('utf-8'), write)
 
-cpdef decode_string(bytes s, int p):
+cpdef inline decode_string(bytes s, int p):
     cdef bytes _s
     _s, p = decode_delimited(s, p)
     return _s.decode('utf-8'), p
 
-cdef from_zigzag(int n):
+cdef inline from_zigzag(int n):
     if not n & 0x1:
         return n >> 1
     return (n >> 1) ^ (~0)
 
-cdef to_zigzag(int n):
+cdef inline to_zigzag(int n):
     if n >= 0:
         return n << 1
     return (n << 1) ^ (~0)
 
-cpdef decode_svarint(bytes s, int p):
-    cdef int v
-    v, p = decode_varint(s, p)
+cpdef inline decode_svarint(bytes s, int p):
+    cdef int v = c_decode_varint(s, &p)
     return from_zigzag(v), p
 
-cpdef encode_svarint(int n, write):
+cpdef inline encode_svarint(int n, write):
     encode_varint(to_zigzag(n), write)
 
-cdef skip_varint(bytes s, int p):
-    cdef char* c_s = s
-    cdef c_l = len(s)
+cdef inline int skip_varint(bytes s, int p):
+    cdef char* c_s
+    cdef int c_l
+    PyString_AsStringAndSize(s, &c_s, &c_l)
     while p < c_l and c_s[p] & 0x80:
         p += 1
     return p + 1
 
-cdef skip_delimited(bytes s, int p):
+cdef inline int skip_delimited(bytes s, int p):
     cdef int l
     l, p = decode_varint(s, p)
     return p + l
 
-cdef skip_unknown_field(bytes s, int p, int wtype):
+cdef inline int skip_unknown_field(bytes s, int p, int wtype):
     if wtype == 0:
         p = skip_varint(s, p)
     elif wtype == 1:
