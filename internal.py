@@ -1,3 +1,6 @@
+# cython hack http://stackoverflow.com/questions/13976504
+STUFF = "Hi"
+
 def decode_varint(s, p):
     '''
     >>> decode_varint('\x08\x96\x01', 0)
