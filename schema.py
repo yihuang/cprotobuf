@@ -5,7 +5,7 @@ r'''
 ...     b = Field('string', 2)
 ...     c = Field('sint32', 3)
 >>> obj = Test(a=150, b=u'\u6d4b\u8bd5', c=-150)
->>> obj1 = decode_object(Test, encode_object(obj))
+>>> obj1 = decode_object(Test(), encode_object(obj))
 >>> obj.a == obj1.a
 True
 >>> obj.b == obj1.b
@@ -77,16 +77,18 @@ decoders = {
 }
 
 class Field(object):
-    def __init__(self, type, index, required=True, repeated=False, pack=False):
+    def __init__(self, type, index, required=True, repeated=False, pack=False, default=None):
         self.type = type
         self.index = index
         self.required = required
         self.repeated = repeated
         self.pack = pack
+        self.default = default
+        self.name = None
 
         self.wire_type = self.get_wire_type()
-        self.encoder = self.get_encoder()
-        self.decoder = self.get_decoder()
+        #self.encoder = self.get_encoder()
+        #self.decoder = self.get_decoder()
 
     def get_wire_type(self):
         if self.pack:
@@ -97,11 +99,11 @@ class Field(object):
             assert isinstance(self.type, ProtoEntity)
             return 2
 
-    def get_encoder(self):
-        return encoders[self.type]
+    def encoder(self, value, write):
+        return encoders[self.type](value, write)
 
-    def get_decoder(self):
-        return decoders[self.type]
+    def decoder(self, s, p):
+        return decoders[self.type](s, p)
 
 class MetaProtoEntity(type):
     def __new__(cls, clsname, bases, attrs):
@@ -110,17 +112,19 @@ class MetaProtoEntity(type):
         # _decoders for decode
         # _fields for encode
         _fields = []
-        _decoders = {}
+        _fields_by_index = {}
+        new_attrs = {}
         for name, f in attrs.items():
             if name.startswith('__'):
                 continue
-            _fields.append((
-                f.index, f.wire_type, f.encoder, name
-            ))
-            _decoders[f.index] = (f.decoder, name)
-        newcls = super(MetaProtoEntity, cls).__new__(cls, clsname, bases, attrs)
+            if not f.required:
+                new_attrs[name] = f.default
+            f.name = name
+            _fields.append(f)
+            _fields_by_index[f.index] = f
+        newcls = super(MetaProtoEntity, cls).__new__(cls, clsname, bases, new_attrs)
         newcls._fields = _fields
-        newcls._decoders = _decoders
+        newcls._fields_by_index = _fields_by_index
         return newcls
 
 class ProtoEntity(object):
@@ -131,27 +135,53 @@ class ProtoEntity(object):
             setattr(self, k, v)
 
 def encode_object(obj):
-    l = []
-    for findex, wtype, encoder, name in obj._fields:
-        l.append( (findex, wtype, getattr(obj, name), encoder) )
-
     buf = []
-    encode_message(l, buf.append)
+    for f in obj._fields:
+        value = getattr(obj, f.name)
+        if f.pack:
+            encode_tag(f.index, f.wire_type, buf.append)
+            buf1 = []
+            for item in value:
+                f.encoder(item, buf1.append)
+            encode_delimited(''.join(buf1), buf.append)
+        else:
+            if f.repeated:
+                for item in value:
+                    encode_tag(f.index, f.wire_type, buf.append)
+                    f.encoder(item, buf.append)
+            else:
+                encode_tag(f.index, f.wire_type, buf.append)
+                f.encoder(value, buf.append)
     return ''.join(buf)
 
-def decode_object(cls, s):
-    decoders = cls._decoders
+def decode_object(obj, s):
+    fields_by_index = obj.__class__._fields_by_index
     p = 0
-    obj = cls()
-    while p<len(s)-1:
+    while p < len(s)-1:
         wtype, findex, p = decode_tag(s, p)
         try:
-            decoder, name = decoders[findex]
+            f = fields_by_index[findex]
         except KeyError:
             p = skip_unknown_field(s, p, wtype)
         else:
-            value, p = decoder(s, p)
-            setattr(obj, name, value)
+            if f.pack:
+                bs, p = decode_delimited(s, p)
+                pp = 0
+                while pp < len(bs):
+                    value, pp = f.decoder(bs, pp)
+                    try:
+                        getattr(obj, f.name).append(value)
+                    except AttributeError:
+                        setattr(obj, f.name, [value])
+            else:
+                value, p = f.decoder(s, p)
+                if f.repeated:
+                    try:
+                        getattr(obj, f.name).append(value)
+                    except AttributeError:
+                        setattr(obj, f.name, [value])
+                else:
+                    setattr(obj, f.name, value)
 
     return obj
 

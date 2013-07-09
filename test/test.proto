@@ -1,0 +1,7 @@
+message Test1 {
+    required int32 a = 1;
+    optional int32 b = 2;
+    required int32 c = 3;
+    repeated int32 d = 4;
+    repeated int32 e = 5 [packed=true];
+}
