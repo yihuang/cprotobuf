@@ -14,9 +14,6 @@ True
 True
 '''
 
-# cython hack http://stackoverflow.com/questions/13976504
-STUFF = "Hi"
-
 from internal import *
 
 wire_types = {

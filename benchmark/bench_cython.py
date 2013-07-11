@@ -1,5 +1,8 @@
 # coding: utf-8
+
+import pyximport; pyximport.install()
 from c_internal import ProtoEntity, Field, encode_object, decode_object
+
 class Test(ProtoEntity):
     a = Field('int32', 1)
     b = Field('string', 2)

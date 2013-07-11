@@ -1,4 +1,3 @@
-# cython: profile=True
 # cython hack http://stackoverflow.com/questions/13976504
 STUFF = "Hi"
 
