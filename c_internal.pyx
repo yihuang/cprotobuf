@@ -2,14 +2,14 @@
 STUFF = "Hi"
 
 cdef extern from "Python.h":
-    int PyString_AsStringAndSize(object obj, char **buffer, int *length)
-    object PyString_FromStringAndSize(const char *v, int len)
+    int PyString_AsStringAndSize(object obj, char **buffer, Py_ssize_t *length)
+    object PyString_FromStringAndSize(const char *v, Py_ssize_t len)
 
 cdef inline int c_decode_varint(bytes s, int* p):
     cdef int r = 0
     cdef int shift = 0
     cdef char* c_s
-    cdef int c_l
+    cdef Py_ssize_t c_l
     PyString_AsStringAndSize(s, &c_s, &c_l)
     cdef char b
     while p[0] < c_l:
@@ -75,12 +75,12 @@ cpdef inline decode_string(bytes s, int p):
     cdef bytes s1 = c_decode_delimited(s, &p)
     return s1.decode('utf-8'), p
 
-cdef inline from_zigzag(int n):
+cdef inline int from_zigzag(int n):
     if not n & 0x1:
         return n >> 1
     return (n >> 1) ^ (~0)
 
-cdef inline to_zigzag(int n):
+cdef inline int to_zigzag(int n):
     if n >= 0:
         return n << 1
     return (n << 1) ^ (~0)
@@ -94,7 +94,7 @@ cpdef inline encode_svarint(int n, write):
 
 cdef inline int skip_varint(bytes s, int p):
     cdef char* c_s
-    cdef int c_l
+    cdef Py_ssize_t c_l
     PyString_AsStringAndSize(s, &c_s, &c_l)
     while p < c_l and c_s[p] & 0x80:
         p += 1
