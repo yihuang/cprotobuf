@@ -11,7 +11,7 @@ from google.protobuf import descriptor_pb2
 DESCRIPTOR = descriptor.FileDescriptor(
   name='test.proto',
   package='',
-  serialized_pb='\n\ntest.proto\"\'\n\x04Test\x12\t\n\x01\x61\x18\x01 \x02(\x05\x12\t\n\x01\x62\x18\x02 \x02(\t\x12\t\n\x01\x63\x18\x03 \x02(\x11')
+  serialized_pb='\n\ntest.proto\"A\n\x04Test\x12\t\n\x01\x61\x18\x01 \x02(\x05\x12\t\n\x01\x62\x18\x02 \x02(\t\x12\t\n\x01\x63\x18\x03 \x02(\x11\x12\t\n\x01\x64\x18\x04 \x03(\x05\x12\r\n\x01\x65\x18\x05 \x03(\x05\x42\x02\x10\x01')
 
 
 
@@ -44,6 +44,20 @@ _TEST = descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
+    descriptor.FieldDescriptor(
+      name='d', full_name='Test.d', index=3,
+      number=4, type=5, cpp_type=1, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='e', full_name='Test.e', index=4,
+      number=5, type=5, cpp_type=1, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\020\001')),
   ],
   extensions=[
   ],
@@ -54,7 +68,7 @@ _TEST = descriptor.Descriptor(
   is_extendable=False,
   extension_ranges=[],
   serialized_start=14,
-  serialized_end=53,
+  serialized_end=79,
 )
 
 DESCRIPTOR.message_types_by_name['Test'] = _TEST

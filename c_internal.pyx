@@ -144,21 +144,26 @@ cdef class Field(object):
     cdef bint pack
     cdef bint required
     cdef bint repeated
+    cdef object default
 
     cdef int wire_type
     cdef Encoder encoder
     cdef Decoder decoder
 
-    def __init__(self, type, index, required=True, repeated=False, pack=False):
+    def __init__(self, type, index, required=True, repeated=False, pack=False, default=None):
         self.type = type
         self.index = index
         self.required = required
         self.repeated = repeated
         self.pack = pack
+        self.default = default
 
         self.wire_type = self.get_wire_type()
         self.encoder = self.get_encoder()
         self.decoder = self.get_decoder()
+
+        if self.pack:
+            assert self.repeated, 'pack must be used with repeated'
 
     cdef int get_wire_type(self):
         if self.pack:
@@ -272,16 +277,31 @@ cpdef encode_object(obj):
     d = obj.__dict__
     cdef Field f
     for f in obj._fields:
-        encode_tag(f.index, f.wire_type, buf.append)
-        f.encoder(d[f.name], buf.append)
+        value = d[f.name]
+        if f.pack:
+            encode_tag(f.index, f.wire_type, buf.append)
+            buf1 = []
+            for item in value:
+                f.encoder(item, buf1.append)
+            encode_delimited(''.join(buf1), buf.append)
+        else:
+            if f.repeated:
+                for item in value:
+                    encode_tag(f.index, f.wire_type, buf.append)
+                    f.encoder(item, buf.append)
+            else:
+                encode_tag(f.index, f.wire_type, buf.append)
+                f.encoder(value, buf.append)
     return ''.join(buf)
 
-cpdef decode_object(cls, bytes s):
-    fieldsmap = cls._fieldsmap
+cpdef decode_object(obj, bytes s):
+    fieldsmap = obj._fieldsmap
     cdef int p = 0
     cdef int tag, wtype, findex
-    obj = cls()
     cdef int s_l = len(s)
+    cdef int subp = 0
+    cdef bytes subs
+    cdef int sublen = 0
     cdef Field f
     while p < s_l - 1:
         tag = decode_tag(s, &p)
@@ -292,8 +312,22 @@ cpdef decode_object(cls, bytes s):
             wtype= tag & 0x07
             p = skip_unknown_field(s, p, wtype)
         else:
-            value = f.decoder(s, &p)
-            setattr(obj, f.name, value)
+            d = obj.__dict__
+            if f.pack:
+                subs = decode_delimited(s, &p)
+                sublen = len(subs)
+                subp = 0
+                d.setdefault(f.name, [])
+                while subp < sublen:
+                    value = f.decoder(subs, &subp)
+                    d[f.name].append(value)
+            else:
+                value = f.decoder(s, &p)
+                if f.repeated:
+                    d.setdefault(f.name, [])
+                    d[f.name].append(value)
+                else:
+                    d[f.name] = value
 
     return obj
 

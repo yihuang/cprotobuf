@@ -2,4 +2,6 @@ message Test {
     required int32 a = 1;
     required string b = 2;
     required sint32 c = 3;
+    repeated int32  d = 4;
+    repeated int32  e = 5 [packed=true];
 }
