@@ -1,3 +1,8 @@
+message SubTest {
+    required int32  a = 1;
+    required string b = 2;
+}
+
 message Test1 {
     required int32 a = 1;
     optional int32 b = 2;
@@ -6,4 +11,5 @@ message Test1 {
     repeated sint32 e = 5 [packed=true];
     required float f = 6;
     required double g = 7;
+    required SubTest h = 8;
 }

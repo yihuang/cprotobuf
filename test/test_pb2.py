@@ -11,9 +11,44 @@ from google.protobuf import descriptor_pb2
 DESCRIPTOR = descriptor.FileDescriptor(
   name='test.proto',
   package='',
-  serialized_pb='\n\ntest.proto\"X\n\x05Test1\x12\t\n\x01\x61\x18\x01 \x02(\x05\x12\t\n\x01\x62\x18\x02 \x01(\x05\x12\t\n\x01\x63\x18\x03 \x02(\x11\x12\t\n\x01\x64\x18\x04 \x03(\x05\x12\r\n\x01\x65\x18\x05 \x03(\x11\x42\x02\x10\x01\x12\t\n\x01\x66\x18\x06 \x02(\x02\x12\t\n\x01g\x18\x07 \x02(\x01')
+  serialized_pb='\n\ntest.proto\"\x1f\n\x07SubTest\x12\t\n\x01\x61\x18\x01 \x02(\x05\x12\t\n\x01\x62\x18\x02 \x02(\t\"m\n\x05Test1\x12\t\n\x01\x61\x18\x01 \x02(\x05\x12\t\n\x01\x62\x18\x02 \x01(\x05\x12\t\n\x01\x63\x18\x03 \x02(\x11\x12\t\n\x01\x64\x18\x04 \x03(\x05\x12\r\n\x01\x65\x18\x05 \x03(\x11\x42\x02\x10\x01\x12\t\n\x01\x66\x18\x06 \x02(\x02\x12\t\n\x01g\x18\x07 \x02(\x01\x12\x13\n\x01h\x18\x08 \x02(\x0b\x32\x08.SubTest')
 
 
+
+
+_SUBTEST = descriptor.Descriptor(
+  name='SubTest',
+  full_name='SubTest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    descriptor.FieldDescriptor(
+      name='a', full_name='SubTest.a', index=0,
+      number=1, type=5, cpp_type=1, label=2,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='b', full_name='SubTest.b', index=1,
+      number=2, type=9, cpp_type=9, label=2,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=14,
+  serialized_end=45,
+)
 
 
 _TEST1 = descriptor.Descriptor(
@@ -72,6 +107,13 @@ _TEST1 = descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
+    descriptor.FieldDescriptor(
+      name='h', full_name='Test1.h', index=7,
+      number=8, type=11, cpp_type=10, label=2,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
   ],
   extensions=[
   ],
@@ -81,11 +123,19 @@ _TEST1 = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=14,
-  serialized_end=102,
+  serialized_start=47,
+  serialized_end=156,
 )
 
+_TEST1.fields_by_name['h'].message_type = _SUBTEST
+DESCRIPTOR.message_types_by_name['SubTest'] = _SUBTEST
 DESCRIPTOR.message_types_by_name['Test1'] = _TEST1
+
+class SubTest(message.Message):
+  __metaclass__ = reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _SUBTEST
+  
+  # @@protoc_insertion_point(class_scope:SubTest)
 
 class Test1(message.Message):
   __metaclass__ = reflection.GeneratedProtocolMessageType
