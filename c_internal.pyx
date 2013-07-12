@@ -6,7 +6,7 @@ cdef extern from "Python.h":
     object PyString_FromStringAndSize(const char *v, Py_ssize_t len)
 
 ctypedef object (*Decoder)(bytes, int*)
-ctypedef void (*Encoder)(object, object)
+ctypedef void (*Encoder)(object, list)
 
 cdef inline int c_decode_varint(bytes s, int* pp):
     cdef int r = 0
@@ -35,43 +35,43 @@ cdef inline decode_varint(bytes s, int* p):
 cdef inline c_chr(char n):
     return PyString_FromStringAndSize(&n, 1)
 
-cdef inline void c_encode_varint(int n, write):
+cdef inline void c_encode_varint(int n, list buf):
     cdef int b = n & 0x7f
     n >>= 7
     while n:
-        write(c_chr(0x80|b))
+        buf.append(c_chr(0x80|b))
         b = n & 0x7f
         n >>= 7
-    write(c_chr(b))
+    buf.append(c_chr(b))
 
-cdef inline void encode_varint(n, write):
-    c_encode_varint(n, write)
+cdef inline void encode_varint(n, list buf):
+    c_encode_varint(n, buf)
 
 cdef inline int decode_tag(bytes s, int* p):
     return c_decode_varint(s, p)
 
-cdef inline void encode_tag(int findex, int wtype, write):
+cdef inline void encode_tag(int findex, int wtype, list buf):
     cdef int tag = (findex << 3) | wtype
-    c_encode_varint(tag, write)
+    c_encode_varint(tag, buf)
 
 cdef inline bytes decode_fixed(bytes s, int* pp, int n):
     cdef int p = pp[0]
     pp[0] = p+n
     return s[p:p+n]
 
-cdef inline encode_fixed(bytes s, write):
-    write(s)
+cdef inline encode_fixed(bytes s, list buf):
+    buf.append(s)
 
 cdef inline decode_delimited(bytes s, int* p):
     cdef int l = c_decode_varint(s, p)
     return decode_fixed(s, p, l)
 
-cdef inline void encode_delimited(s, write):
-    c_encode_varint(len(<bytes>s), write)
-    write(s)
+cdef inline void encode_delimited(s, list buf):
+    c_encode_varint(len(<bytes>s), buf)
+    buf.append(s)
 
-cdef inline void encode_string(s, write):
-    encode_delimited(s.encode('utf-8'), write)
+cdef inline void encode_string(s, list buf):
+    encode_delimited(s.encode('utf-8'), buf)
 
 cdef inline decode_string(bytes s, int* p):
     return (<bytes>decode_delimited(s, p)).decode('utf-8')
@@ -89,8 +89,8 @@ cdef inline int to_zigzag(int n):
 cdef inline decode_svarint(bytes s, int* p):
     return from_zigzag(c_decode_varint(s, p))
 
-cdef inline void encode_svarint(n, write):
-    c_encode_varint(to_zigzag(n), write)
+cdef inline void encode_svarint(n, list buf):
+    c_encode_varint(to_zigzag(n), buf)
 
 cdef inline int skip_varint(bytes s, int p):
     cdef char* c_s
@@ -279,19 +279,19 @@ class ProtoEntity(object):
         for f in self._fields:
             value = d[f.name]
             if f.pack:
-                encode_tag(f.index, f.wire_type, buf.append)
+                encode_tag(f.index, f.wire_type, buf)
                 buf1 = []
                 for item in value:
-                    f.encoder(item, buf1.append)
-                encode_delimited(''.join(buf1), buf.append)
+                    f.encoder(item, buf1)
+                encode_delimited(''.join(buf1), buf)
             else:
                 if f.repeated:
                     for item in value:
-                        encode_tag(f.index, f.wire_type, buf.append)
-                        f.encoder(item, buf.append)
+                        encode_tag(f.index, f.wire_type, buf)
+                        f.encoder(item, buf)
                 else:
-                    encode_tag(f.index, f.wire_type, buf.append)
-                    f.encoder(value, buf.append)
+                    encode_tag(f.index, f.wire_type, buf)
+                    f.encoder(value, buf)
         return ''.join(buf)
 
     def ParseFromString(self, s):
