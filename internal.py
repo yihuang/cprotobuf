@@ -1,3 +1,5 @@
+import struct
+
 def decode_varint(s, p):
     '''
     >>> decode_varint('\x08\x96\x01', 0)
@@ -198,6 +200,42 @@ def encode_message(l, write):
     for findex, wtype, value, encoder in l:
         encode_tag(findex, wtype, write)
         encoder(value, write)
+
+def encode_float(n, write):
+    write(struct.pack('<f', n))
+
+def encode_double(n, write):
+    write(struct.pack('<d', n))
+
+def decode_float(s, p):
+    return struct.unpack('<f', s[p:p+4])[0], p+4
+
+def decode_double(s, p):
+    return struct.unpack('<d', s[p:p+8])[0], p+8
+
+def encode_fixed64(n, write):
+    write(struct.pack('<q', n))
+
+def encode_fixed32(n, write):
+    write(struct.pack('<i', n))
+
+def encode_sfixed64(n, write):
+    write(struct.pack('<Q', to_zigzag(n)))
+
+def encode_sfixed32(n, write):
+    write(struct.pack('<I', to_zigzag(n)))
+
+def decode_fixed64(s, p):
+    return struct.unpack('<q', s[p:p+8])[0], p+8
+
+def decode_fixed32(s, p):
+    return struct.unpack('<i', s[p:p+4])[0], p+4
+
+def decode_sfixed64(s, p):
+    return from_zigzag(struct.unpack('<q', s[p:p+8])[0]), p+8
+
+def decode_sfixed32(s, p):
+    return from_zigzag(struct.unpack('<i', s[p:p+4])[0]), p+4
 
 if __name__ == '__main__':
     import doctest

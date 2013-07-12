@@ -1,5 +1,6 @@
 # cython hack http://stackoverflow.com/questions/13976504
 from libc.stdint cimport *
+import struct
 STUFF = "Hi"
 
 cdef extern from "Python.h":
@@ -136,6 +137,54 @@ cdef inline int skip_unknown_field(bytes s, int p, int wtype):
         raise Exception('impossible')
     return p
 
+cdef inline void encode_float(n, list buf):
+    buf.append(struct.pack('<f', n))
+
+cdef inline void encode_double(n, list buf):
+    buf.append(struct.pack('<d', n))
+
+cdef inline decode_float(bytes s, int* pp):
+    cdef int p = pp[0]
+    pp[0] += 4
+    return struct.unpack('<f', s[p:p+4])[0]
+
+cdef inline decode_double(bytes s, int* pp):
+    cdef int p = pp[0]
+    pp[0] += 8
+    return struct.unpack('<d', s[p:p+8])[0]
+
+cdef inline void encode_fixed64(n, list buf):
+    buf.append(struct.pack('<q', n))
+
+cdef inline void encode_fixed32(n, list buf):
+    buf.append(struct.pack('<i', n))
+
+cdef inline void encode_sfixed64(n, list buf):
+    buf.append(struct.pack('<Q', to_zigzag64(n)))
+
+cdef inline void encode_sfixed32(n, list buf):
+    buf.append(struct.pack('<I', to_zigzag32(n)))
+
+cdef inline decode_fixed64(bytes s, int* pp):
+    cdef int p = pp[0]
+    pp[0] += 8
+    return struct.unpack('<q', s[p:p+8])[0]
+
+cdef inline decode_fixed32(bytes s, int* pp):
+    cdef int p = pp[0]
+    pp[0] += 4
+    return struct.unpack('<i', s[p:p+4])[0]
+
+cdef inline decode_sfixed64(bytes s, int* pp):
+    cdef int p = pp[0]
+    pp[0] += 8
+    return from_zigzag64(struct.unpack('<q', s[p:p+8])[0])
+
+cdef inline decode_sfixed32(bytes s, int* pp):
+    cdef int p = pp[0]
+    pp[0] += 4
+    return from_zigzag32(struct.unpack('<i', s[p:p+4])[0])
+
 wire_types = {
     'int32': 0,
     'int64': 0,
@@ -210,22 +259,22 @@ cdef class Field(object):
             return encode_varint
         if self.type == 'enum':
             return encode_varint
-        #if self.type == 'fixed64':
-        #    return encode_fixed64
-        #if self.type == 'sfixed64':
-        #    return encode_sfixed64
-        #if self.type == 'double':
-        #    return encode_double
+        if self.type == 'fixed64':
+            return encode_fixed64
+        if self.type == 'sfixed64':
+            return encode_sfixed64
+        if self.type == 'fixed32':
+            return encode_fixed32
+        if self.type == 'sfixed32':
+            return encode_sfixed32
         if self.type == 'string':
             return encode_string
         if self.type == 'bytes':
             return encode_delimited
-        #if self.type == 'fixed32':
-        #    return encode_fixed32
-        #if self.type == 'sfixed32':
-        #    return encode_sfixed32
-        #if self.type == 'float':
-        #    return encode_float
+        if self.type == 'float':
+            return encode_float
+        if self.type == 'double':
+            return encode_double
 
     cdef Decoder get_decoder(self):
         if self.type == 'int32':
@@ -244,22 +293,22 @@ cdef class Field(object):
             return decode_varint
         if self.type == 'enum':
             return decode_varint
-        #if self.type == 'fixed64':
-        #    return decode_fixed64
-        #if self.type == 'sfixed64':
-        #    return decode_sfixed64
-        #if self.type == 'double':
-        #    return decode_double
+        if self.type == 'fixed32':
+            return decode_fixed32
+        if self.type == 'fixed64':
+            return decode_fixed64
+        if self.type == 'sfixed32':
+            return decode_sfixed32
+        if self.type == 'sfixed64':
+            return decode_sfixed64
         if self.type == 'string':
             return decode_string
         if self.type == 'bytes':
             return decode_delimited
-        #if self.type == 'fixed32':
-        #    return decode_fixed32
-        #if self.type == 'sfixed32':
-        #    return decode_sfixed32
-        #if self.type == 'float':
-        #    return decode_float
+        if self.type == 'float':
+            return decode_float
+        if self.type == 'double':
+            return decode_double
 
 class MetaProtoEntity(type):
     def __new__(cls, clsname, bases, attrs):

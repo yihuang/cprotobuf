@@ -11,7 +11,7 @@ from google.protobuf import descriptor_pb2
 DESCRIPTOR = descriptor.FileDescriptor(
   name='test.proto',
   package='',
-  serialized_pb='\n\ntest.proto\"B\n\x05Test1\x12\t\n\x01\x61\x18\x01 \x02(\x05\x12\t\n\x01\x62\x18\x02 \x01(\x05\x12\t\n\x01\x63\x18\x03 \x02(\x05\x12\t\n\x01\x64\x18\x04 \x03(\x05\x12\r\n\x01\x65\x18\x05 \x03(\x05\x42\x02\x10\x01')
+  serialized_pb='\n\ntest.proto\"X\n\x05Test1\x12\t\n\x01\x61\x18\x01 \x02(\x05\x12\t\n\x01\x62\x18\x02 \x01(\x05\x12\t\n\x01\x63\x18\x03 \x02(\x11\x12\t\n\x01\x64\x18\x04 \x03(\x05\x12\r\n\x01\x65\x18\x05 \x03(\x11\x42\x02\x10\x01\x12\t\n\x01\x66\x18\x06 \x02(\x02\x12\t\n\x01g\x18\x07 \x02(\x01')
 
 
 
@@ -39,7 +39,7 @@ _TEST1 = descriptor.Descriptor(
       options=None),
     descriptor.FieldDescriptor(
       name='c', full_name='Test1.c', index=2,
-      number=3, type=5, cpp_type=1, label=2,
+      number=3, type=17, cpp_type=1, label=2,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -53,11 +53,25 @@ _TEST1 = descriptor.Descriptor(
       options=None),
     descriptor.FieldDescriptor(
       name='e', full_name='Test1.e', index=4,
-      number=5, type=5, cpp_type=1, label=3,
+      number=5, type=17, cpp_type=1, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\020\001')),
+    descriptor.FieldDescriptor(
+      name='f', full_name='Test1.f', index=5,
+      number=6, type=2, cpp_type=6, label=2,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='g', full_name='Test1.g', index=6,
+      number=7, type=1, cpp_type=5, label=2,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
   ],
   extensions=[
   ],
@@ -68,7 +82,7 @@ _TEST1 = descriptor.Descriptor(
   is_extendable=False,
   extension_ranges=[],
   serialized_start=14,
-  serialized_end=80,
+  serialized_end=102,
 )
 
 DESCRIPTOR.message_types_by_name['Test1'] = _TEST1

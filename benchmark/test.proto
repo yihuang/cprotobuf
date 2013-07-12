@@ -4,4 +4,6 @@ message Test {
     required sint32 c = 3;
     repeated int32  d = 4;
     repeated int32  e = 5 [packed=true];
+    required float f = 6;
+    required double g = 7;
 }
