@@ -1,4 +1,5 @@
 # cython hack http://stackoverflow.com/questions/13976504
+from libc.stdint cimport *
 STUFF = "Hi"
 
 cdef extern from "Python.h":
@@ -8,43 +9,53 @@ cdef extern from "Python.h":
 ctypedef object (*Decoder)(bytes, int*)
 ctypedef void (*Encoder)(object, list)
 
-cdef inline int c_decode_varint(bytes s, int* pp):
-    cdef int r = 0
-    cdef int shift = 0
-    cdef char* c_s
-    cdef Py_ssize_t c_l
-    PyString_AsStringAndSize(s, &c_s, &c_l)
-    cdef char b
+DEF kMaxVarintBytes = 10
+DEF kMaxVarint32Bytes = 5
+
+cdef inline uint64_t c_decode_varint(bytes s, int* pp):
+    cdef uint64_t result = 0
+    cdef int count = 0
+    cdef uint8_t b
     cdef int p = pp[0]
-    while p < c_l:
+    cdef Py_ssize_t l
+    cdef char* c_s
+    PyString_AsStringAndSize(s, &c_s, &l)
+
+    while p < l:
         b = c_s[p]
-        r |= ((b & 0x7f) << shift)
+        result |= <uint64_t>(b & 0x7F) << (7 * count)
         p += 1
+
         if not b & 0x80:
             break
-        shift += 7
-        if shift >= 64:
+
+        count += 1
+        if count == kMaxVarintBytes:
             raise Exception('too many bytes')
 
     pp[0] = p
-    return r
+    return result
 
 cdef inline decode_varint(bytes s, int* p):
+    return <int64_t>c_decode_varint(s, p)
+
+cdef inline decode_uvarint(bytes s, int* p):
     return c_decode_varint(s, p)
 
-cdef inline c_chr(char n):
-    return PyString_FromStringAndSize(&n, 1)
-
-cdef inline void c_encode_varint(int n, list buf):
-    cdef int b = n & 0x7f
-    n >>= 7
-    while n:
-        buf.append(c_chr(0x80|b))
-        b = n & 0x7f
-        n >>= 7
-    buf.append(c_chr(b))
+cdef inline void c_encode_varint(uint64_t value, list buf):
+    cdef uint8_t _buf[kMaxVarintBytes]
+    cdef int size = 0
+    while value > 0x7F:
+        _buf[size] = (<uint8_t>(value) & 0x7F) | 0x80
+        size += 1
+        value >>= 7
+    _buf[size] = <uint8_t>(value) & 0x7F
+    buf.append(_buf[:size+1])
 
 cdef inline void encode_varint(n, list buf):
+    c_encode_varint(<int64_t>n, buf)
+
+cdef inline void encode_uvarint(n, list buf):
     c_encode_varint(n, buf)
 
 cdef inline int decode_tag(bytes s, int* p):
@@ -76,21 +87,29 @@ cdef inline void encode_string(s, list buf):
 cdef inline decode_string(bytes s, int* p):
     return (<bytes>decode_delimited(s, p)).decode('utf-8')
 
-cdef inline int from_zigzag(int n):
-    if not n & 0x1:
-        return n >> 1
-    return (n >> 1) ^ (~0)
+cdef inline int32_t from_zigzag32(uint32_t n):
+    return (n >> 1) ^ (-<int32_t>(n & 1))
 
-cdef inline int to_zigzag(int n):
-    if n >= 0:
-        return n << 1
-    return (n << 1) ^ (~0)
+cdef inline uint32_t to_zigzag32(int32_t n):
+    return (n << 1) ^ (n >> 31)
 
-cdef inline decode_svarint(bytes s, int* p):
-    return from_zigzag(c_decode_varint(s, p))
+cdef inline int64_t from_zigzag64(uint64_t n):
+    return (n >> 1) ^ (-<int64_t>(n & 1))
 
-cdef inline void encode_svarint(n, list buf):
-    c_encode_varint(to_zigzag(n), buf)
+cdef inline uint64_t to_zigzag64(int64_t n):
+    return (n << 1) ^ (n >> 63)
+
+cdef inline decode_svarint32(bytes s, int* p):
+    return from_zigzag32(c_decode_varint(s, p))
+
+cdef inline void encode_svarint32(n, list buf):
+    c_encode_varint(to_zigzag32(n), buf)
+
+cdef inline decode_svarint64(bytes s, int* p):
+    return from_zigzag64(c_decode_varint(s, p))
+
+cdef inline void encode_svarint64(n, list buf):
+    c_encode_varint(to_zigzag64(n), buf)
 
 cdef inline int skip_varint(bytes s, int p):
     cdef char* c_s
@@ -180,13 +199,13 @@ cdef class Field(object):
         if self.type == 'int64':
             return encode_varint
         if self.type == 'sint32':
-            return encode_svarint
+            return encode_svarint32
         if self.type == 'sint64':
-            return encode_svarint
-        #if self.type == 'uint32':
-        #    return encode_uint32
-        #if self.type == 'uint64':
-        #    return encode_uint64
+            return encode_svarint32
+        if self.type == 'uint32':
+            return encode_uvarint
+        if self.type == 'uint64':
+            return encode_uvarint
         if self.type == 'bool':
             return encode_varint
         if self.type == 'enum':
@@ -214,13 +233,13 @@ cdef class Field(object):
         if self.type == 'int64':
             return decode_varint
         if self.type == 'sint32':
-            return decode_svarint
+            return decode_svarint32
         if self.type == 'sint64':
-            return decode_svarint
-        #if self.type == 'uint32':
-        #    return decode_uint32
-        #if self.type == 'uint64':
-        #    return decode_uint64
+            return decode_svarint64
+        if self.type == 'uint32':
+            return decode_uvarint
+        if self.type == 'uint64':
+            return decode_uvarint
         if self.type == 'bool':
             return decode_varint
         if self.type == 'enum':
@@ -278,7 +297,9 @@ class ProtoEntity(object):
         cdef dict d = self.__dict__
         cdef Field f
         for f in <list>self._fields:
-            value = d[f.name]
+            value = d.get(f.name)
+            if value is None:
+                continue
             if f.pack:
                 encode_tag(f.index, f.wire_type, buf)
                 buf1 = []
