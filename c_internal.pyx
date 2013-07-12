@@ -71,7 +71,7 @@ cdef inline void encode_delimited(s, list buf):
     buf.append(s)
 
 cdef inline void encode_string(s, list buf):
-    encode_delimited(s.encode('utf-8'), buf)
+    encode_delimited((<unicode>s).encode('utf-8'), buf)
 
 cdef inline decode_string(bytes s, int* p):
     return (<bytes>decode_delimited(s, p)).decode('utf-8')
@@ -273,8 +273,9 @@ class ProtoEntity(object):
             setattr(self, k, v)
 
     def SerializeToString(self):
-        buf = []
-        d = self.__dict__
+        cdef list buf = []
+        cdef list buf1
+        cdef dict d = self.__dict__
         cdef Field f
         for f in self._fields:
             value = d[f.name]
@@ -294,8 +295,8 @@ class ProtoEntity(object):
                     f.encoder(value, buf)
         return ''.join(buf)
 
-    def ParseFromString(self, s):
-        fieldsmap = self._fieldsmap
+    def ParseFromString(self, bytes s):
+        cdef dict fieldsmap = self._fieldsmap
         cdef int p = 0
         cdef int tag, wtype, findex
         cdef int s_l = len(s)
@@ -303,13 +304,12 @@ class ProtoEntity(object):
         cdef bytes subs
         cdef int sublen = 0
         cdef Field f
-        d = self.__dict__
+        cdef dict d = self.__dict__
         while p < s_l - 1:
             tag = decode_tag(s, &p)
             findex = tag >> 3
-            try:
-                f = fieldsmap[findex]
-            except KeyError:
+            f = fieldsmap.get(findex)
+            if f is None:
                 wtype= tag & 0x07
                 p = skip_unknown_field(s, p, wtype)
             else:
