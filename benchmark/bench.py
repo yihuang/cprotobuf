@@ -15,12 +15,13 @@ def encode():
         t.c = -i
         t.d = [1,2,3]
         t.e = [1,2,3]
-        encode_object(t)
+        t.SerializeToString()
 
 def decode():
     bs = '\x08\x00\x12\x06\xe6\xb5\x8b\xe8\xaf\x95*\x03\x01\x02\x03 \x01 \x02 \x03\x18\x00'
     for i in range(500):
-        decode_object(Test(), bs)
+        t = Test()
+        t.ParseFromString(bs)
 
 if __name__ == '__main__':
     decode()

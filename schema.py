@@ -131,6 +131,12 @@ class ProtoEntity(object):
         for k,v in kwargs.items():
             setattr(self, k, v)
 
+    def SerializeToString(self):
+        return encode_object(self)
+
+    def ParseFromString(self, s):
+        decode_object(self, s)
+
 def encode_object(obj):
     buf = []
     for f in obj._fields:

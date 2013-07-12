@@ -272,64 +272,62 @@ class ProtoEntity(object):
         for k,v in kwargs.items():
             setattr(self, k, v)
 
-cpdef encode_object(obj):
-    buf = []
-    d = obj.__dict__
-    cdef Field f
-    for f in obj._fields:
-        value = d[f.name]
-        if f.pack:
-            encode_tag(f.index, f.wire_type, buf.append)
-            buf1 = []
-            for item in value:
-                f.encoder(item, buf1.append)
-            encode_delimited(''.join(buf1), buf.append)
-        else:
-            if f.repeated:
-                for item in value:
-                    encode_tag(f.index, f.wire_type, buf.append)
-                    f.encoder(item, buf.append)
-            else:
-                encode_tag(f.index, f.wire_type, buf.append)
-                f.encoder(value, buf.append)
-    return ''.join(buf)
-
-cpdef decode_object(obj, bytes s):
-    fieldsmap = obj._fieldsmap
-    cdef int p = 0
-    cdef int tag, wtype, findex
-    cdef int s_l = len(s)
-    cdef int subp = 0
-    cdef bytes subs
-    cdef int sublen = 0
-    cdef Field f
-    while p < s_l - 1:
-        tag = decode_tag(s, &p)
-        findex = tag >> 3
-        try:
-            f = fieldsmap[findex]
-        except KeyError:
-            wtype= tag & 0x07
-            p = skip_unknown_field(s, p, wtype)
-        else:
-            d = obj.__dict__
+    def SerializeToString(self):
+        buf = []
+        d = self.__dict__
+        cdef Field f
+        for f in self._fields:
+            value = d[f.name]
             if f.pack:
-                subs = decode_delimited(s, &p)
-                sublen = len(subs)
-                subp = 0
-                d.setdefault(f.name, [])
-                while subp < sublen:
-                    value = f.decoder(subs, &subp)
-                    d[f.name].append(value)
+                encode_tag(f.index, f.wire_type, buf.append)
+                buf1 = []
+                for item in value:
+                    f.encoder(item, buf1.append)
+                encode_delimited(''.join(buf1), buf.append)
             else:
-                value = f.decoder(s, &p)
                 if f.repeated:
-                    d.setdefault(f.name, [])
-                    d[f.name].append(value)
+                    for item in value:
+                        encode_tag(f.index, f.wire_type, buf.append)
+                        f.encoder(item, buf.append)
                 else:
-                    d[f.name] = value
+                    encode_tag(f.index, f.wire_type, buf.append)
+                    f.encoder(value, buf.append)
+        return ''.join(buf)
 
-    return obj
+    def ParseFromString(self, s):
+        fieldsmap = self._fieldsmap
+        cdef int p = 0
+        cdef int tag, wtype, findex
+        cdef int s_l = len(s)
+        cdef int subp = 0
+        cdef bytes subs
+        cdef int sublen = 0
+        cdef Field f
+        d = self.__dict__
+        while p < s_l - 1:
+            tag = decode_tag(s, &p)
+            findex = tag >> 3
+            try:
+                f = fieldsmap[findex]
+            except KeyError:
+                wtype= tag & 0x07
+                p = skip_unknown_field(s, p, wtype)
+            else:
+                if f.pack:
+                    subs = decode_delimited(s, &p)
+                    sublen = len(subs)
+                    subp = 0
+                    d.setdefault(f.name, [])
+                    while subp < sublen:
+                        value = f.decoder(subs, &subp)
+                        d[f.name].append(value)
+                else:
+                    value = f.decoder(s, &p)
+                    if f.repeated:
+                        d.setdefault(f.name, [])
+                        d[f.name].append(value)
+                    else:
+                        d[f.name] = value
 
 if __name__ == '__main__':
     import doctest
