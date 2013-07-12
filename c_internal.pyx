@@ -277,17 +277,17 @@ class ProtoEntity(object):
         cdef list buf1
         cdef dict d = self.__dict__
         cdef Field f
-        for f in self._fields:
+        for f in <list>self._fields:
             value = d[f.name]
             if f.pack:
                 encode_tag(f.index, f.wire_type, buf)
                 buf1 = []
-                for item in value:
+                for item in <list>value:
                     f.encoder(item, buf1)
                 encode_delimited(''.join(buf1), buf)
             else:
                 if f.repeated:
-                    for item in value:
+                    for item in <list>value:
                         encode_tag(f.index, f.wire_type, buf)
                         f.encoder(item, buf)
                 else:
