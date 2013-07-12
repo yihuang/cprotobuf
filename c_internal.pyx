@@ -27,7 +27,7 @@ cdef inline uint64_t c_decode_varint(bytes s, int* pp):
         result |= <uint64_t>(b & 0x7F) << (7 * count)
         p += 1
 
-        if not b & 0x80:
+        if b < 0x80:
             break
 
         count += 1
@@ -116,7 +116,7 @@ cdef inline int skip_varint(bytes s, int p):
     cdef char* c_s
     cdef Py_ssize_t c_l
     PyString_AsStringAndSize(s, &c_s, &c_l)
-    while p < c_l and c_s[p] & 0x80:
+    while p < c_l and c_s[p] >= 0x80:
         p += 1
     return p + 1
 
@@ -176,14 +176,13 @@ cdef inline decode_fixed32(bytes s, int* pp):
     return struct.unpack('<i', s[p:p+4])[0]
 
 cdef inline decode_sfixed64(bytes s, int* pp):
-    cdef int p = pp[0]
-    pp[0] += 8
-    return from_zigzag64(struct.unpack('<q', s[p:p+8])[0])
+    return from_zigzag64(decode_fixed64(s, pp))
 
 cdef inline decode_sfixed32(bytes s, int* pp):
-    cdef int p = pp[0]
-    pp[0] += 4
-    return from_zigzag32(struct.unpack('<i', s[p:p+4])[0])
+    return from_zigzag32(decode_fixed32(s, pp))
+
+cdef inline void encode_submessage(v, list buf):
+    encode_delimited(v.SerializeToString(), buf)
 
 wire_types = {
     'int32': 0,
@@ -206,15 +205,15 @@ wire_types = {
 
 cdef class Field(object):
 
-    cdef bytes name
-    cdef bytes type
-    cdef int index
-    cdef bint pack
-    cdef bint required
-    cdef bint repeated
+    cdef public bytes name
+    cdef object type
+    cdef public int index
+    cdef public bint pack
+    cdef public bint required
+    cdef public bint repeated
     cdef object default
 
-    cdef int wire_type
+    cdef public int wire_type
     cdef Encoder encoder
     cdef Decoder decoder
 
@@ -239,7 +238,7 @@ cdef class Field(object):
         try:
             return wire_types[self.type]
         except KeyError:
-            assert isinstance(self.type, ProtoEntity)
+            assert issubclass(self.type, ProtoEntity)
             return 2
 
     cdef Encoder get_encoder(self):
@@ -275,6 +274,9 @@ cdef class Field(object):
             return encode_float
         if self.type == 'double':
             return encode_double
+        if issubclass(self.type, ProtoEntity):
+            return encode_submessage
+        raise Exception('unsupported field type')
 
     cdef Decoder get_decoder(self):
         if self.type == 'int32':
@@ -309,6 +311,9 @@ cdef class Field(object):
             return decode_float
         if self.type == 'double':
             return decode_double
+        if issubclass(self.type, ProtoEntity):
+            return decode_delimited
+        raise Exception('unsupported field type')
 
 class MetaProtoEntity(type):
     def __new__(cls, clsname, bases, attrs):
@@ -393,11 +398,25 @@ class ProtoEntity(object):
                         d[f.name].append(value)
                 else:
                     value = f.decoder(s, &p)
+                    if not isinstance(f.type, str):
+                        subs = value
+                        value = f.type()
+                        value.ParseFromString(subs)
                     if f.repeated:
                         d.setdefault(f.name, [])
                         d[f.name].append(value)
                     else:
                         d[f.name] = value
+
+    def __unicode__(self):
+        cdef Field f
+        buf = []
+        for f in self._fields:
+            buf.append('%s = %s' % (f.name, getattr(self, f.name)))
+        return '\n'.join(buf)
+
+    def __str__(self):
+        return unicode(self).encode('utf-8')
 
 if __name__ == '__main__':
     import doctest
