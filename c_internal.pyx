@@ -5,33 +5,37 @@ cdef extern from "Python.h":
     int PyString_AsStringAndSize(object obj, char **buffer, Py_ssize_t *length)
     object PyString_FromStringAndSize(const char *v, Py_ssize_t len)
 
-cdef inline int c_decode_varint(bytes s, int* p):
+ctypedef object (*Decoder)(bytes, int*)
+ctypedef void (*Encoder)(object, object)
+
+cdef inline int c_decode_varint(bytes s, int* pp):
     cdef int r = 0
     cdef int shift = 0
     cdef char* c_s
     cdef Py_ssize_t c_l
     PyString_AsStringAndSize(s, &c_s, &c_l)
     cdef char b
-    while p[0] < c_l:
-        b = c_s[p[0]]
+    cdef int p = pp[0]
+    while p < c_l:
+        b = c_s[p]
         r |= ((b & 0x7f) << shift)
-        p[0] += 1
+        p += 1
         if not b & 0x80:
             break
         shift += 7
         if shift >= 64:
             raise Exception('too many bytes')
 
+    pp[0] = p
     return r
 
-cpdef inline decode_varint(bytes s, int p):
-    cdef int v = c_decode_varint(s, &p)
-    return v, p
+cdef inline decode_varint(bytes s, int* p):
+    return c_decode_varint(s, p)
 
 cdef inline c_chr(char n):
     return PyString_FromStringAndSize(&n, 1)
 
-cpdef inline encode_varint(int n, write):
+cdef inline void c_encode_varint(int n, write):
     cdef int b = n & 0x7f
     n >>= 7
     while n:
@@ -40,40 +44,37 @@ cpdef inline encode_varint(int n, write):
         n >>= 7
     write(c_chr(b))
 
+cdef inline void encode_varint(n, write):
+    c_encode_varint(n, write)
+
 cdef inline int decode_tag(bytes s, int* p):
-    cdef int tag
     return c_decode_varint(s, p)
 
 cdef inline void encode_tag(int findex, int wtype, write):
     cdef int tag = (findex << 3) | wtype
-    encode_varint(tag, write)
+    c_encode_varint(tag, write)
 
-cdef inline bytes decode_fixed(bytes s, int* p, int n):
-    cdef bytes res = s[p[0] : p[0]+n]
-    p[0] += n
-    return res
+cdef inline bytes decode_fixed(bytes s, int* pp, int n):
+    cdef int p = pp[0]
+    pp[0] = p+n
+    return s[p:p+n]
 
 cdef inline encode_fixed(bytes s, write):
     write(s)
 
-cdef inline bytes c_decode_delimited(bytes s, int* p):
+cdef inline decode_delimited(bytes s, int* p):
     cdef int l = c_decode_varint(s, p)
     return decode_fixed(s, p, l)
 
-cpdef inline decode_delimited(bytes s, int p):
-    cdef bytes s1 = c_decode_delimited(s, &p)
-    return s1, p
-
-cpdef inline encode_delimited(bytes s, write):
-    encode_varint(len(s), write)
+cdef inline void encode_delimited(s, write):
+    c_encode_varint(len(<bytes>s), write)
     write(s)
 
-cpdef inline encode_string(s, write):
-    return encode_delimited(s.encode('utf-8'), write)
+cdef inline void encode_string(s, write):
+    encode_delimited(s.encode('utf-8'), write)
 
-cpdef inline decode_string(bytes s, int p):
-    cdef bytes s1 = c_decode_delimited(s, &p)
-    return s1.decode('utf-8'), p
+cdef inline decode_string(bytes s, int* p):
+    return (<bytes>decode_delimited(s, p)).decode('utf-8')
 
 cdef inline int from_zigzag(int n):
     if not n & 0x1:
@@ -85,12 +86,11 @@ cdef inline int to_zigzag(int n):
         return n << 1
     return (n << 1) ^ (~0)
 
-cpdef inline decode_svarint(bytes s, int p):
-    cdef int v = c_decode_varint(s, &p)
-    return from_zigzag(v), p
+cdef inline decode_svarint(bytes s, int* p):
+    return from_zigzag(c_decode_varint(s, p))
 
-cpdef inline encode_svarint(int n, write):
-    encode_varint(to_zigzag(n), write)
+cdef inline void encode_svarint(n, write):
+    c_encode_varint(to_zigzag(n), write)
 
 cdef inline int skip_varint(bytes s, int p):
     cdef char* c_s
@@ -136,45 +136,19 @@ wire_types = {
     'float': 5,
 }
 
-encoders = {
-    'int32': encode_varint,
-    'int64': encode_varint,
-    'sint32': encode_svarint,
-    'sint64': encode_svarint,
-    #'uint32': encode_uint32,
-    #'uint64': encode_uint64,
-    'bool': encode_varint,
-    'enum': encode_varint,
-    #'fixed64': encode_fixed64,
-    #'sfixed64': encode_sfixed64,
-    #'double': encode_double,
-    'string': encode_string,
-    'bytes': encode_delimited,
-    #'fixed32': encode_fixed32,
-    #'sfixed32': encode_sfixed32,
-    #'float': encode_float,
-}
+cdef class Field(object):
 
-decoders = {
-    'int32': decode_varint,
-    'int64': decode_varint,
-    'sint32': decode_svarint,
-    'sint64': decode_svarint,
-    #'uint32': decode_uint32,
-    #'uint64': decode_uint64,
-    'bool': decode_varint,
-    'enum': decode_varint,
-    #'fixed64': decode_fixed64,
-    #'sfixed64': decode_sfixed64,
-    #'double': decode_double,
-    'string': decode_string,
-    'bytes': decode_delimited,
-    #'fixed32': decode_fixed32,
-    #'sfixed32': decode_sfixed32,
-    #'float': decode_float,
-}
+    cdef bytes name
+    cdef bytes type
+    cdef int index
+    cdef bint pack
+    cdef bint required
+    cdef bint repeated
 
-class Field(object):
+    cdef int wire_type
+    cdef Encoder encoder
+    cdef Decoder decoder
+
     def __init__(self, type, index, required=True, repeated=False, pack=False):
         self.type = type
         self.index = index
@@ -186,7 +160,7 @@ class Field(object):
         self.encoder = self.get_encoder()
         self.decoder = self.get_decoder()
 
-    def get_wire_type(self):
+    cdef int get_wire_type(self):
         if self.pack:
             return 2
         try:
@@ -195,30 +169,95 @@ class Field(object):
             assert isinstance(self.type, ProtoEntity)
             return 2
 
-    def get_encoder(self):
-        return encoders[self.type]
+    cdef Encoder get_encoder(self):
+        if self.type == 'int32':
+            return encode_varint
+        if self.type == 'int64':
+            return encode_varint
+        if self.type == 'sint32':
+            return encode_svarint
+        if self.type == 'sint64':
+            return encode_svarint
+        #if self.type == 'uint32':
+        #    return encode_uint32
+        #if self.type == 'uint64':
+        #    return encode_uint64
+        if self.type == 'bool':
+            return encode_varint
+        if self.type == 'enum':
+            return encode_varint
+        #if self.type == 'fixed64':
+        #    return encode_fixed64
+        #if self.type == 'sfixed64':
+        #    return encode_sfixed64
+        #if self.type == 'double':
+        #    return encode_double
+        if self.type == 'string':
+            return encode_string
+        if self.type == 'bytes':
+            return encode_delimited
+        #if self.type == 'fixed32':
+        #    return encode_fixed32
+        #if self.type == 'sfixed32':
+        #    return encode_sfixed32
+        #if self.type == 'float':
+        #    return encode_float
 
-    def get_decoder(self):
-        return decoders[self.type]
+    cdef Decoder get_decoder(self):
+        if self.type == 'int32':
+            return decode_varint
+        if self.type == 'int64':
+            return decode_varint
+        if self.type == 'sint32':
+            return decode_svarint
+        if self.type == 'sint64':
+            return decode_svarint
+        #if self.type == 'uint32':
+        #    return decode_uint32
+        #if self.type == 'uint64':
+        #    return decode_uint64
+        if self.type == 'bool':
+            return decode_varint
+        if self.type == 'enum':
+            return decode_varint
+        #if self.type == 'fixed64':
+        #    return decode_fixed64
+        #if self.type == 'sfixed64':
+        #    return decode_sfixed64
+        #if self.type == 'double':
+        #    return decode_double
+        if self.type == 'string':
+            return decode_string
+        if self.type == 'bytes':
+            return decode_delimited
+        #if self.type == 'fixed32':
+        #    return decode_fixed32
+        #if self.type == 'sfixed32':
+        #    return decode_sfixed32
+        #if self.type == 'float':
+        #    return decode_float
 
 class MetaProtoEntity(type):
     def __new__(cls, clsname, bases, attrs):
         if clsname == 'ProtoEntity':
             return super(MetaProtoEntity, cls).__new__(cls, clsname, bases, attrs)
-        # _decoders for decode
         # _fields for encode
+        # _fieldsmap for decode
         _fields = []
-        _decoders = {}
-        for name, f in attrs.items():
+        _fieldsmap = {}
+        cdef Field f
+        for name, v in attrs.items():
+            if not isinstance(v, Field):
+                continue
             if name.startswith('__'):
                 continue
-            _fields.append((
-                f.index, f.wire_type, f.encoder, name
-            ))
-            _decoders[f.index] = (f.decoder, name)
+            f = v
+            f.name = name
+            _fields.append(f)
+            _fieldsmap[f.index] = f
         newcls = super(MetaProtoEntity, cls).__new__(cls, clsname, bases, attrs)
         newcls._fields = _fields
-        newcls._decoders = _decoders
+        newcls._fieldsmap = _fieldsmap
         return newcls
 
 class ProtoEntity(object):
@@ -230,29 +269,31 @@ class ProtoEntity(object):
 
 cpdef encode_object(obj):
     buf = []
-    for findex, wtype, encoder, name in obj._fields:
-        value = getattr(obj, name)
-        encode_tag(findex, wtype, buf.append)
-        encoder(value, buf.append)
+    d = obj.__dict__
+    cdef Field f
+    for f in obj._fields:
+        encode_tag(f.index, f.wire_type, buf.append)
+        f.encoder(d[f.name], buf.append)
     return ''.join(buf)
 
 cpdef decode_object(cls, bytes s):
-    decoders = cls._decoders
+    fieldsmap = cls._fieldsmap
     cdef int p = 0
     cdef int tag, wtype, findex
     obj = cls()
     cdef int s_l = len(s)
+    cdef Field f
     while p < s_l - 1:
         tag = decode_tag(s, &p)
-        wtype= tag & 0x07
         findex = tag >> 3
         try:
-            decoder, name = decoders[findex]
+            f = fieldsmap[findex]
         except KeyError:
+            wtype= tag & 0x07
             p = skip_unknown_field(s, p, wtype)
         else:
-            value, p = decoder(s, p)
-            setattr(obj, name, value)
+            value = f.decoder(s, &p)
+            setattr(obj, f.name, value)
 
     return obj
 
