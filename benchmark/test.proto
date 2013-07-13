@@ -1,9 +1,14 @@
 message Test {
-    required int32 a = 1;
-    required string b = 2;
-    required sint32 c = 3;
-    repeated int32  d = 4;
-    repeated int32  e = 5 [packed=true];
-    required float f = 6;
-    required double g = 7;
+    required int32      a = 1;
+    required int64      b = 2;
+    required sint32     c = 3;
+    required sint64     d = 4;
+    required fixed32    e = 5;
+    required fixed64    f = 6;
+    required sfixed32   g = 7;
+    required sfixed64   h = 8;
+    required float      i = 9;
+    required double     j = 10;
+
+    required string     k = 11;
 }
