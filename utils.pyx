@@ -18,7 +18,7 @@ cdef extern from "Python.h":
     Py_ssize_t Py_SIZE(object)
 
 ctypedef object(*Decoder)(char **pointer, char *end)
-ctypedef void(*Encoder)(bytearray array, object value)
+ctypedef void(*Encoder)(object array, object value)
 
 class InternalDecodeError(Exception):
     pass
@@ -46,8 +46,8 @@ cdef inline int bytearray_reserve(bytearray ba, Py_ssize_t size):
     if sval == NULL:
         PyErr_NoMemory()
         return -1
-    ba.ob_bytes = <char*>sval
     ba.ob_alloc = alloc
+    ba.ob_bytes = <char*>sval
     return 0
 
 # }}}
@@ -61,21 +61,15 @@ cdef inline int raw_decode_uint32(char **start, char *end, uint32_t *result) nog
     cdef uint32_t byte
     cdef char *pointer = start[0]
     cdef int counter = 0
-
-    if pointer < end and <uint8_t>pointer[0] < 0x80:
-        start[0] += 1
-        result[0] = pointer[0]
-        return 0
-
     while True:
         if pointer == end:
             return -1
         byte = pointer[0]
         value |= (byte & 0x7f) << counter
-        if byte & 0x80 == 0:
-            break
         counter+=7
         pointer+=1
+        if byte & 0x80 == 0:
+            break
     start[0] = pointer
     result[0] = value
     return 0
@@ -138,6 +132,33 @@ cdef inline int raw_decode_delimited(char **pointer, char *end, char **result, u
     result[0] = start
     pointer[0] = start+size[0]
     return 0
+
+cdef inline int skip_unknown_field(char **pointer, char *end, int wtype) nogil:
+    cdef uint32_t size
+    cdef char* start
+    if wtype == 0:
+        start = pointer[0]
+        while True:
+            if start >= end:
+                return -1
+            if start[0] & 0x80 == 0:
+                break
+            start += 1
+        pointer[0] = start + 1
+    elif wtype == 1:
+        pointer[0] += 8
+    elif wtype == 2:
+        if raw_decode_uint32(pointer, end, &size):
+            return -1
+        if pointer[0]+size >= end:
+            return -1
+        pointer[0] += size
+    elif wtype == 5:
+        pointer[0] += 4
+    else:
+        return -1
+    return 0
+
 # }}}
 
 cdef object decode_uint32(char **pointer, char *end):
@@ -173,7 +194,8 @@ cdef object decode_sint32(char **pointer, char *end, ):
     if raw_decode_uint32(pointer, end, &result):
         raise makeDecodeError(pointer[0], "Can't decode value of type `sint32` at [{0}]")
 
-    return PyInt_FromLong(<int32_t>((result >> 1) ^ (result << 31)))
+    return <int32_t>((result >> 1) ^ (-<int32_t>(result & 1)))
+    #return <int32_t>((result >> 1) ^ (result << 31))
 
 cdef object decode_sint64(char **pointer, char *end, ):
     cdef uint64_t un
@@ -255,7 +277,7 @@ cdef inline void encode_uint32(object array, object value):
     cdef unsigned short int rem
     cdef Py_ssize_t size = PyByteArray_GET_SIZE(array)
     bytearray_reserve(array, size + 10)
-    cdef char *buff = PyByteArray_AS_STRING(array) + size
+    cdef char *buff = (<bytearray>array).ob_bytes + size
 
     if 0!=n:
         while True:
@@ -273,7 +295,8 @@ cdef inline void encode_uint32(object array, object value):
         buff[0] = '\0'
         buff+=1
 
-    (<bytearray>array).ob_size = buff - PyByteArray_AS_STRING(array)
+    cdef Py_ssize_t ss = buff - (<bytearray>array).ob_bytes
+    (<bytearray>array).ob_size = ss
 
 cdef inline void encode_int32(object array, object value):
     cdef int32_t n = value
@@ -401,7 +424,7 @@ cdef inline void encode_double(array, object value):
     cdef double d = value
     encode_fixed64(array, (<uint64_t*>&d)[0])
 
-cdef inline void encode_type(array, unsigned char t, uint32_t n):
-    encode_uint32(array, n<<3|t)
+cdef inline void encode_type(array, unsigned char wire_type, uint32_t index):
+    encode_uint32(array, index<<3|wire_type)
 
 # }}}
