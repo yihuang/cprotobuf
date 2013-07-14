@@ -202,14 +202,13 @@ cdef object decode_sint32(char **pointer, char *end, ):
         raise makeDecodeError(pointer[0], "Can't decode value of type `sint32` at [{0}]")
 
     return <int32_t>((result >> 1) ^ (-<int32_t>(result & 1)))
-    #return <int32_t>((result >> 1) ^ (result << 31))
 
 cdef object decode_sint64(char **pointer, char *end, ):
     cdef uint64_t un
     if raw_decode_uint64(pointer, end, &un):
         raise makeDecodeError(pointer[0], "Can't decode value of type `sint64` at [{0}]")
 
-    return PyLong_FromLongLong(<int64_t>((un>>1) ^ (un<<63)))
+    return <int64_t>((un >> 1) ^ (-<int64_t>(un & 1)))
 
 cdef object decode_fixed32(char **pointer, char *end, ):
     cdef uint32_t result
