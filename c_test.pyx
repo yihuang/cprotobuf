@@ -30,7 +30,7 @@ cdef class Field(object):
     cdef public bint repeated
     cdef object default
 
-    cdef public int wire_type
+    cdef public unsigned char wire_type
     cdef Encoder encoder
     cdef Decoder decoder
 
@@ -49,7 +49,7 @@ cdef class Field(object):
         if self.pack:
             assert self.repeated, 'pack must be used with repeated'
 
-    cdef int get_wire_type(self):
+    cdef unsigned char get_wire_type(self):
         if self.pack:
             return 2
         try:
@@ -176,11 +176,11 @@ class ProtoEntity(object):
         start = buff
         end = buff + size
 
-        #try:
-        decode_object(self, &buff, end)
-        #except InternalDecodeError as e:
-        #    traceback.print_exc()
-        #    raise DecodeError(e.args[0] - <uint64_t>start, e.args[1])
+        try:
+            decode_object(self, &buff, end)
+        except InternalDecodeError as e:
+            traceback.print_exc()
+            raise DecodeError(e.args[0] - <uint64_t>start, e.args[1])
 
     def __unicode__(self):
         cdef Field f
@@ -203,12 +203,12 @@ cdef inline int encode_object(bytearray buf, self) except -1:
         if f.pack:
             encode_type(buf, f.wire_type, f.index)
             buf1 = bytearray()
-            for item in <list>value:
+            for item in <list?>value:
                 f.encoder(buf1, item)
             encode_bytes(buf, buf1)
         else:
             if f.repeated:
-                for item in <list>value:
+                for item in <list?>value:
                     encode_type(buf, f.wire_type, f.index)
                     f.encoder(buf, item)
             else:
