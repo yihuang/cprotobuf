@@ -1,5 +1,5 @@
 include "utils.pxi"
-import traceback
+#import traceback
 
 wire_types = {
     'int32': 0,
@@ -179,7 +179,7 @@ class ProtoEntity(object):
         try:
             decode_object(self, &buff, end)
         except InternalDecodeError as e:
-            traceback.print_exc()
+            #traceback.print_exc()
             raise DecodeError(e.args[0] - <uint64_t>start, e.args[1])
 
     def __unicode__(self):
