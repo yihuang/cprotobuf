@@ -164,27 +164,7 @@ class ProtoEntity(object):
 
     def SerializeToString(self):
         cdef bytearray buf = bytearray()
-        cdef bytearray buf1
-        cdef dict d = self.__dict__
-        cdef Field f
-        for f in <list>self._fields:
-            value = d.get(f.name)
-            if value is None:
-                continue
-            if f.pack:
-                encode_type(buf, f.wire_type, f.index)
-                buf1 = bytearray()
-                for item in <list>value:
-                    f.encoder(buf1, item)
-                encode_bytes(buf, buf1)
-            else:
-                if f.repeated:
-                    for item in <list>value:
-                        encode_type(buf, f.wire_type, f.index)
-                        f.encoder(buf, item)
-                else:
-                    encode_type(buf, f.wire_type, f.index)
-                    f.encoder(buf, value)
+        encode_object(buf, self)
         return buf
 
     def ParseFromString(self, bytes s):
@@ -196,11 +176,11 @@ class ProtoEntity(object):
         start = buff
         end = buff + size
 
-        try:
-            decode_object(self, &buff, end)
-        except InternalDecodeError as e:
-            traceback.print_exc()
-            raise DecodeError(e.args[0] - <uint64_t>start, e.args[1])
+        #try:
+        decode_object(self, &buff, end)
+        #except InternalDecodeError as e:
+        #    traceback.print_exc()
+        #    raise DecodeError(e.args[0] - <uint64_t>start, e.args[1])
 
     def __unicode__(self):
         cdef Field f
@@ -212,7 +192,31 @@ class ProtoEntity(object):
     def __str__(self):
         return unicode(self).encode('utf-8')
 
-cdef decode_object(object self, char **pointer, char *end):
+cdef inline int encode_object(bytearray buf, self) except -1:
+    cdef bytearray buf1
+    cdef dict d = self.__dict__
+    cdef Field f
+    for f in <list>self._fields:
+        value = d.get(f.name)
+        if value is None:
+            continue
+        if f.pack:
+            encode_type(buf, f.wire_type, f.index)
+            buf1 = bytearray()
+            for item in <list>value:
+                f.encoder(buf1, item)
+            encode_bytes(buf, buf1)
+        else:
+            if f.repeated:
+                for item in <list>value:
+                    encode_type(buf, f.wire_type, f.index)
+                    f.encoder(buf, item)
+            else:
+                encode_type(buf, f.wire_type, f.index)
+                f.encoder(buf, value)
+    return 0
+
+cdef inline int decode_object(object self, char **pointer, char *end) except -1:
     cdef dict fieldsmap = self._fieldsmap
     cdef uint32_t tag, wtype, findex
 
@@ -249,3 +253,4 @@ cdef decode_object(object self, char **pointer, char *end):
                 else:
                     d[f.name] = value
 
+    return 0
