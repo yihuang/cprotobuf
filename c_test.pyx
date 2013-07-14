@@ -1,4 +1,5 @@
 include "utils.pxi"
+import inspect
 #import traceback
 
 wire_types = {
@@ -20,37 +21,70 @@ wire_types = {
     'float': 5,
 }
 
+default_objects = {
+    'int32': 0,
+    'int64': 0,
+    'sint32': 0,
+    'sint64': 0,
+    'uint32': 0,
+    'uint64': 0,
+    'bool': False,
+    'enum': 0,
+    'fixed64': 0,
+    'sfixed64': 0,
+    'double': 0.0,
+    'string': u'',
+    'bytes': '',
+    'fixed32': 0,
+    'sfixed32': 0,
+    'float': 0.0,
+}
+
 cdef class Field(object):
 
     cdef public bytes name
     cdef object type
     cdef public int index
-    cdef public bint pack
+    cdef public bint packed
     cdef public bint required
     cdef public bint repeated
+    cdef object klass
     cdef object default
 
     cdef public unsigned char wire_type
     cdef Encoder encoder
     cdef Decoder decoder
 
-    def __init__(self, type, index, required=True, repeated=False, pack=False, default=None):
+    def __init__(self, type, index, required=True, repeated=False, packed=False, default=None):
         self.type = type
         self.index = index
         self.required = required
         self.repeated = repeated
-        self.pack = pack
-        self.default = default
+        self.packed = packed
+
+        if inspect.isclass(self.type) and issubclass(self.type, ProtoEntity):
+            self.klass = self.type
+        else:
+            self.klass = None
+
+        self.default = default or self.get_default()
 
         self.wire_type = self.get_wire_type()
         self.encoder = self.get_encoder()
         self.decoder = self.get_decoder()
 
-        if self.pack:
-            assert self.repeated, 'pack must be used with repeated'
+        if self.packed:
+            assert self.repeated, 'packed must be used with repeated'
+
+    cdef get_default(self):
+        if self.repeated:
+            return list
+        if self.klass:
+            return self.klass
+        return default_objects[self.type]
 
     cdef unsigned char get_wire_type(self):
-        if self.pack:
+        if self.packed:
             return 2
         try:
             return wire_types[self.type]
@@ -58,7 +92,7 @@ cdef class Field(object):
             #assert issubclass(self.type, ProtoEntity)
             return 2
 
-    cdef Encoder get_encoder(self) except NULL:
+    cdef Encoder get_encoder(self):
         if self.type == 'int32':
             return encode_int64     # compatible with official protobuf
         if self.type == 'int64':
@@ -91,11 +125,11 @@ cdef class Field(object):
             return encode_float
         if self.type == 'double':
             return encode_double
-        #if issubclass(self.type, ProtoEntity):
-        #    return encode_submessage
-        raise Exception('unsupported field type')
+        if issubclass(self.type, ProtoEntity):
+            return encode_subobject
+        return NULL
 
-    cdef Decoder get_decoder(self) except NULL:
+    cdef Decoder get_decoder(self):
         if self.type == 'int32':
             return decode_int64     # compatible with official protobuf
         if self.type == 'int64':
@@ -128,9 +162,7 @@ cdef class Field(object):
             return decode_float
         if self.type == 'double':
             return decode_double
-        #if issubclass(self.type, ProtoEntity):
-        #    return decode_bytes
-        raise Exception('unsupported field type')
+        return NULL
 
 class MetaProtoEntity(type):
     def __new__(cls, clsname, bases, attrs):
@@ -140,6 +172,8 @@ class MetaProtoEntity(type):
         # _fieldsmap for decode
         _fields = []
         _fieldsmap = {}
+        _fieldsmap_by_name = {}
+        _defaults = {}
         cdef Field f
         for name, v in attrs.items():
             if not isinstance(v, Field):
@@ -150,17 +184,29 @@ class MetaProtoEntity(type):
             f.name = name
             _fields.append(f)
             _fieldsmap[f.index] = f
-        newcls = super(MetaProtoEntity, cls).__new__(cls, clsname, bases, attrs)
+            _fieldsmap_by_name[f.name] = f
+            _defaults[f.name] = f.default
+        newcls = super(MetaProtoEntity, cls).__new__(cls, clsname, bases, {})
         newcls._fields = _fields
         newcls._fieldsmap = _fieldsmap
+        newcls._fieldsmap_by_name = _fieldsmap_by_name
+        newcls._defaults = _defaults
         return newcls
 
 class ProtoEntity(object):
     __metaclass__ = MetaProtoEntity
 
     def __init__(self, **kwargs):
-        for k,v in kwargs.items():
-            setattr(self, k, v)
+        self.__dict__.update(kwargs)
+
+    def __getattr__(self, name):
+        value = self.__class__._defaults[name]
+        if not value:
+            raise AttributeError('attribute %s is not found' % name)
+        if callable(value):
+            value = value()
+        self.__dict__[name] = value
+        return value
 
     def SerializeToString(self):
         cdef bytearray buf = bytearray()
@@ -186,13 +232,20 @@ class ProtoEntity(object):
         cdef Field f
         buf = []
         for f in self._fields:
+            if not f.required:
+                continue
             buf.append('%s = %s' % (f.name, getattr(self, f.name)))
         return '\n'.join(buf)
 
     def __str__(self):
         return unicode(self).encode('utf-8')
 
-cdef inline int encode_object(bytearray buf, self) except -1:
+cdef inline encode_subobject(bytearray array, value):
+    cdef bytearray sub_buf = bytearray()
+    encode_object(sub_buf, value)
+    encode_bytes(array, sub_buf)
+
+cdef inline encode_object(bytearray buf, self):
     cdef bytearray buf1
     cdef dict d = self.__dict__
     cdef Field f
@@ -200,7 +253,7 @@ cdef inline int encode_object(bytearray buf, self) except -1:
         value = d.get(f.name)
         if value is None:
             continue
-        if f.pack:
+        if f.packed:
             encode_type(buf, f.wire_type, f.index)
             buf1 = bytearray()
             for item in <list?>value:
@@ -214,7 +267,6 @@ cdef inline int encode_object(bytearray buf, self) except -1:
             else:
                 encode_type(buf, f.wire_type, f.index)
                 f.encoder(buf, value)
-    return 0
 
 cdef inline int decode_object(object self, char **pointer, char *end) except -1:
     cdef dict fieldsmap = self._fieldsmap
@@ -226,6 +278,7 @@ cdef inline int decode_object(object self, char **pointer, char *end) except -1:
 
     cdef Field f
     cdef dict d = self.__dict__
+    cdef list l
 
     while pointer[0] < end:
         if raw_decode_uint32(pointer, end, &tag):
@@ -235,21 +288,28 @@ cdef inline int decode_object(object self, char **pointer, char *end) except -1:
         if f is None:
             wtype= tag & 0x07
             if skip_unknown_field(pointer, end, wtype):
-                raise makeDecodeError(pointer[0], "Can't skip enough bytes at [{0}] for value")
+                raise makeDecodeError(pointer[0], "Can't skip enough bytes for wire_type %s at [{0}] for value" % wtype)
         else:
-            if f.pack:
+            if f.packed:
                 if raw_decode_delimited(pointer, end, &sub_buff, &sub_size):
                     raise makeDecodeError(pointer[0], "Can't decode value of type `packed` at [{0}]")
                 sub_end = sub_buff + sub_size
-                d.setdefault(f.name, [])
-                while sub_buff < sub_end:
-                    value = f.decoder(&sub_buff, sub_end)
-                    d[f.name].append(value)
+                l = d.setdefault(f.name, [])
+                while True:
+                    l.append(f.decoder(&sub_buff, sub_end))
+                    if sub_buff >= sub_end:
+                        break
             else:
-                value = f.decoder(pointer, end)
+                if f.klass is None:
+                    value = f.decoder(pointer, end)
+                else:
+                    if raw_decode_delimited(pointer, end, &sub_buff, &sub_size):
+                        raise makeDecodeError(pointer[0], "Can't decode value of sub message at [{0}]")
+                    value = f.klass()
+                    decode_object(value, &sub_buff, sub_buff+sub_size)
                 if f.repeated:
-                    d.setdefault(f.name, [])
-                    d[f.name].append(value)
+                    l = d.setdefault(f.name, [])
+                    l.append(value)
                 else:
                     d[f.name] = value
 
