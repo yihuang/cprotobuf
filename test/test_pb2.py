@@ -11,9 +11,44 @@ from google.protobuf import descriptor_pb2
 DESCRIPTOR = descriptor.FileDescriptor(
   name='test.proto',
   package='',
-  serialized_pb='\n\ntest.proto\"\xa0\x01\n\x04Test\x12\t\n\x01\x61\x18\x01 \x01(\x05\x12\t\n\x01\x62\x18\x02 \x01(\x03\x12\t\n\x01\x63\x18\x03 \x01(\x11\x12\t\n\x01\x64\x18\x04 \x01(\x12\x12\t\n\x01\x65\x18\x05 \x01(\x07\x12\t\n\x01\x66\x18\x06 \x01(\x06\x12\t\n\x01g\x18\x07 \x01(\x0f\x12\t\n\x01h\x18\x08 \x01(\x10\x12\t\n\x01i\x18\t \x01(\x02\x12\t\n\x01j\x18\n \x01(\x01\x12\t\n\x01k\x18\x0b \x01(\r\x12\t\n\x01l\x18\x0c \x01(\x04\x12\t\n\x01m\x18\r \x01(\t\x12\t\n\x01n\x18\x0e \x01(\x08')
+  serialized_pb='\n\ntest.proto\"\x1f\n\x07SubTest\x12\t\n\x01\x61\x18\x01 \x01(\x05\x12\t\n\x01\x62\x18\x02 \x01(\x11\"\xcf\x01\n\x04Test\x12\t\n\x01\x61\x18\x01 \x01(\x05\x12\t\n\x01\x62\x18\x02 \x01(\x03\x12\t\n\x01\x63\x18\x03 \x01(\x11\x12\t\n\x01\x64\x18\x04 \x01(\x12\x12\t\n\x01\x65\x18\x05 \x01(\x07\x12\t\n\x01\x66\x18\x06 \x01(\x06\x12\t\n\x01g\x18\x07 \x01(\x0f\x12\t\n\x01h\x18\x08 \x01(\x10\x12\t\n\x01i\x18\t \x01(\x02\x12\t\n\x01j\x18\n \x01(\x01\x12\t\n\x01k\x18\x0b \x01(\r\x12\t\n\x01l\x18\x0c \x01(\x04\x12\t\n\x01m\x18\r \x01(\t\x12\t\n\x01n\x18\x0e \x01(\x08\x12\x13\n\x01o\x18\x0f \x01(\x0b\x32\x08.SubTest\x12\t\n\x01p\x18\x10 \x03(\x05\x12\r\n\x01q\x18\x11 \x03(\x05\x42\x02\x10\x01')
 
 
+
+
+_SUBTEST = descriptor.Descriptor(
+  name='SubTest',
+  full_name='SubTest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    descriptor.FieldDescriptor(
+      name='a', full_name='SubTest.a', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='b', full_name='SubTest.b', index=1,
+      number=2, type=17, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=14,
+  serialized_end=45,
+)
 
 
 _TEST = descriptor.Descriptor(
@@ -121,6 +156,27 @@ _TEST = descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
+    descriptor.FieldDescriptor(
+      name='o', full_name='Test.o', index=14,
+      number=15, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='p', full_name='Test.p', index=15,
+      number=16, type=5, cpp_type=1, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    descriptor.FieldDescriptor(
+      name='q', full_name='Test.q', index=16,
+      number=17, type=5, cpp_type=1, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=descriptor._ParseOptions(descriptor_pb2.FieldOptions(), '\020\001')),
   ],
   extensions=[
   ],
@@ -130,11 +186,19 @@ _TEST = descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=15,
-  serialized_end=175,
+  serialized_start=48,
+  serialized_end=255,
 )
 
+_TEST.fields_by_name['o'].message_type = _SUBTEST
+DESCRIPTOR.message_types_by_name['SubTest'] = _SUBTEST
 DESCRIPTOR.message_types_by_name['Test'] = _TEST
+
+class SubTest(message.Message):
+  __metaclass__ = reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _SUBTEST
+  
+  # @@protoc_insertion_point(class_scope:SubTest)
 
 class Test(message.Message):
   __metaclass__ = reflection.GeneratedProtocolMessageType

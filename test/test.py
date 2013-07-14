@@ -4,6 +4,10 @@ import pyximport; pyximport.install()
 from c_test import ProtoEntity, Field
 import test_pb2
 
+class SubTest(ProtoEntity):
+    a = Field('int32',      1)
+    b = Field('sint32',     2)
+
 class Test(ProtoEntity):
     a = Field('int32',      1)
     b = Field('int64',      2)
@@ -19,6 +23,9 @@ class Test(ProtoEntity):
     l = Field('uint64',     12)
     m = Field('string',     13)
     n = Field('bool',       14)
+    o = Field(SubTest,      15)
+    p = Field('int32',      16, repeated=True)
+    q = Field('int32',      17, repeated=True, packed=True)
 
 data1 = dict(
     a = 2147483647,
@@ -35,6 +42,12 @@ data1 = dict(
     l = 18446744073709551615,
     m = u'测试',
     n = True,
+    o = dict(
+        a = 150,
+        b = -150,
+    ),
+    p = [1,2,3],
+    q = [1,2,3],
 )
 
 data2 = dict(
@@ -54,9 +67,37 @@ data2 = dict(
     n = False,
 )
 
+def set_obj(o, d):
+    for k,v in d.items():
+        if isinstance(v, dict):
+            set_obj(getattr(o, k), v)
+        elif isinstance(v, list):
+            for i in v:
+                attr = getattr(o, k)
+                if isinstance(i, dict):
+                    set_obj(attr.add(), i)
+                else:
+                    attr.append(i)
+        else:
+            setattr(o, k, v)
+
+def eq_obj(data, obj1, obj2):
+    for f, v in data.items():
+        v1 = getattr(obj1, f)
+        v2 = getattr(obj2, f)
+        if isinstance(v, list):
+            for a, b in itertools.izip_longest(v1, v2):
+                assert a==b, (f, a, b)
+        elif isinstance(v, dict):
+            eq_obj(v, v1, v2)
+        else:
+            assert v1==v2, (f, v1, v2)
+
 def test(data):
-    e_obj1 = test_pb2.Test(**data)
-    e_obj2 = Test(**data)
+    e_obj1 = test_pb2.Test()
+    set_obj(e_obj1, data)
+    e_obj2 = Test()
+    set_obj(e_obj2, data)
 
     bs1 = e_obj1.SerializeToString()
     bs2 = str(e_obj2.SerializeToString())
@@ -72,10 +113,7 @@ def test(data):
     obj2 = Test()
     obj2.ParseFromString(bs1)
 
-    for f in data:
-        v1 = getattr(obj1, f)
-        v2 = getattr(obj2, f)
-        assert v1==v2, (f, v1, v2)
+    eq_obj(data, obj1, obj2)
 
 if __name__ == '__main__':
     test(data1)

@@ -1,3 +1,8 @@
+message SubTest {
+    optional int32      a = 1;
+    optional sint32     b = 2;
+}
+
 message Test {
     optional int32      a = 1;
     optional int64      b = 2;
@@ -13,4 +18,7 @@ message Test {
     optional uint64     l = 12;
     optional string     m = 13;
     optional bool       n = 14;
+    optional SubTest    o = 15;
+    repeated int32      p = 16;
+    repeated int32      q = 17 [packed=true];
 }
