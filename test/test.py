@@ -15,38 +15,65 @@ class Test1(ProtoEntity):
     h = Field('sfixed64',   8)
     i = Field('float',      9)
     j = Field('double',     10)
-    k = Field('string',     11)
+    k = Field('uint32',     11)
+    l = Field('uint64',     12)
+    m = Field('string',     13)
 
-d = dict(
+data1 = dict(
     a = 2147483647,
-    b = 
+    b = 9223372036854775807,
+    c = 2147483647,
+    d = 9223372036854775807,
+    e = 4294967295,
+    f = 18446744073709551615,
+    g = 2147483647,
+    h = 9223372036854775807,
+    i = 0.3,
+    j = 0.3,
+    k = 4294967295,
+    l = 18446744073709551615,
+    m = u'测试',
 )
 
-def test():
-    obj = test_pb2.Test1()
-    bs = obj.SerializeToString()
+data2 = dict(
+    a = -2147483647,
+    b = -9223372036854775807,
+    c = -2147483647,
+    d = -9223372036854775807,
+    e = 2147483647,
+    f = 9223372036854775807,
+    g = -2147483647,
+    h = -9223372036854775807,
+    i = -0.3,
+    j = -0.3,
+    k = 4294967295,
+    l = 18446744073709551615,
+    m = u'测试',
+)
 
-    obj1 = Test1(a=-200, c=100, d=[1,2,3], e=[1,2,3], f=0.3, g=10.4)#, h=SubTest(a=150, b=u'测试')
-    bs1 = obj1.SerializeToString()
+def test(data):
+    e_obj1 = test_pb2.Test1(**data)
+    e_obj2 = Test1(**data)
+
+    bs1 = e_obj1.SerializeToString()
+    bs2 = str(e_obj2.SerializeToString())
+
+    if len(bs1) != len(bs2):
+        print len(bs1), repr(bs1)
+        print len(bs2), repr(bs2)
+        assert False, 'encoding result is not the same'
+
+    obj1 = test_pb2.Test1()
+    obj1.ParseFromString(bs2)
 
     obj2 = Test1()
-    obj2.ParseFromString(bs)
+    obj2.ParseFromString(bs1)
 
-    obj3 = test_pb2.Test1()
-    obj3.ParseFromString(bs1)
-
-    assert obj2.a == obj3.a, (obj2.a, obj3.a)
-    assert obj2.c == obj3.c
-    assert obj2.f == obj3.f, (obj2.f, obj3.f)
-    assert obj2.e == obj3.e
-    #assert obj2.h.a == obj3.h.a, (obj2.h.a, obj3.h.a)
-    #assert obj2.h.b == obj3.h.b, (obj2.h.b, obj3.h.b)
-
-    for a,b in itertools.izip_longest(obj2.d, obj3.d):
-        assert a==b
-
-    for a,b in itertools.izip_longest(obj2.e, obj3.e):
-        assert a==b
+    for f in data:
+        v1 = getattr(obj1, f)
+        v2 = getattr(obj2, f)
+        assert v1==v2, (f, v1, v2)
 
 if __name__ == '__main__':
-    test()
+    test(data1)
+    test(data2)
