@@ -1,4 +1,4 @@
-message Test1 {
+message Test {
     optional int32      a = 1;
     optional int64      b = 2;
     optional sint32     c = 3;
@@ -12,4 +12,5 @@ message Test1 {
     optional uint32     k = 11;
     optional uint64     l = 12;
     optional string     m = 13;
+    optional bool       n = 14;
 }

@@ -4,7 +4,7 @@ import pyximport; pyximport.install()
 from c_test import ProtoEntity, Field
 import test_pb2
 
-class Test1(ProtoEntity):
+class Test(ProtoEntity):
     a = Field('int32',      1)
     b = Field('int64',      2)
     c = Field('sint32',     3)
@@ -18,6 +18,7 @@ class Test1(ProtoEntity):
     k = Field('uint32',     11)
     l = Field('uint64',     12)
     m = Field('string',     13)
+    n = Field('bool',       14)
 
 data1 = dict(
     a = 2147483647,
@@ -33,6 +34,7 @@ data1 = dict(
     k = 4294967295,
     l = 18446744073709551615,
     m = u'测试',
+    n = True,
 )
 
 data2 = dict(
@@ -49,11 +51,12 @@ data2 = dict(
     k = 4294967295,
     l = 18446744073709551615,
     m = u'测试',
+    n = False,
 )
 
 def test(data):
-    e_obj1 = test_pb2.Test1(**data)
-    e_obj2 = Test1(**data)
+    e_obj1 = test_pb2.Test(**data)
+    e_obj2 = Test(**data)
 
     bs1 = e_obj1.SerializeToString()
     bs2 = str(e_obj2.SerializeToString())
@@ -63,10 +66,10 @@ def test(data):
         print len(bs2), repr(bs2)
         assert False, 'encoding result is not the same'
 
-    obj1 = test_pb2.Test1()
+    obj1 = test_pb2.Test()
     obj1.ParseFromString(bs2)
 
-    obj2 = Test1()
+    obj2 = Test()
     obj2.ParseFromString(bs1)
 
     for f in data:
