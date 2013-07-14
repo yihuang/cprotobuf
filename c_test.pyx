@@ -60,7 +60,7 @@ cdef class Field(object):
 
     cdef Encoder get_encoder(self) except NULL:
         if self.type == 'int32':
-            return encode_int64
+            return encode_int64     # compatible with official protobuf
         if self.type == 'int64':
             return encode_int64
         if self.type == 'sint32':
@@ -68,7 +68,7 @@ cdef class Field(object):
         if self.type == 'sint64':
             return encode_sint64
         if self.type == 'uint32':
-            return encode_uint64
+            return encode_uint32
         if self.type == 'uint64':
             return encode_uint64
         if self.type == 'bool':
@@ -97,7 +97,7 @@ cdef class Field(object):
 
     cdef Decoder get_decoder(self) except NULL:
         if self.type == 'int32':
-            return decode_int64
+            return decode_int64     # compatible with official protobuf
         if self.type == 'int64':
             return decode_int64
         if self.type == 'sint32':
@@ -105,7 +105,7 @@ cdef class Field(object):
         if self.type == 'sint64':
             return decode_sint64
         if self.type == 'uint32':
-            return decode_uint64
+            return decode_uint32
         if self.type == 'uint64':
             return decode_uint64
         if self.type == 'bool':
