@@ -295,10 +295,8 @@ cdef inline int decode_object(object self, char **pointer, char *end) except -1:
                     raise makeDecodeError(pointer[0], "Can't decode value of type `packed` at [{0}]")
                 sub_end = sub_buff + sub_size
                 l = d.setdefault(f.name, [])
-                while True:
+                while sub_buff < sub_end:
                     l.append(f.decoder(&sub_buff, sub_end))
-                    if sub_buff >= sub_end:
-                        break
             else:
                 if f.klass is None:
                     value = f.decoder(pointer, end)
