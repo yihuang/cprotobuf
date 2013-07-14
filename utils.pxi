@@ -11,14 +11,11 @@ cdef extern from "bytearrayobject.h":
         cdef Py_ssize_t ob_size
 
 cdef extern from "Python.h":
-    int PyByteArray_Resize(object bytearray, Py_ssize_t len) except -1
-    char* PyByteArray_AS_STRING(object bytearray)
-    Py_ssize_t PyByteArray_GET_SIZE(object bytearray)
+    Py_ssize_t PyByteArray_GET_SIZE(object array)
     object PyUnicode_FromStringAndSize(char *buff, Py_ssize_t len)
-    Py_ssize_t Py_SIZE(object)
 
 ctypedef object(*Decoder)(char **pointer, char *end)
-ctypedef object(*Encoder)(object array, object value)
+ctypedef object(*Encoder)(bytearray array, object value)
 
 class InternalDecodeError(Exception):
     pass
@@ -283,11 +280,11 @@ cdef object decode_bool(char **pointer, char *end, ):
 
 # {{{ encoding
 
-cdef inline int raw_encode_uint32(object array, uint32_t n) except -1:
+cdef inline int raw_encode_uint32(bytearray array, uint32_t n) except -1:
     cdef unsigned short int rem
     cdef Py_ssize_t size = PyByteArray_GET_SIZE(array)
-    bytearray_reserve(<bytearray>array, size + 10)
-    cdef char *buff = (<bytearray>array).ob_bytes + size
+    bytearray_reserve(array, size + 10)
+    cdef char *buff = array.ob_bytes + size
 
     if 0!=n:
         while True:
@@ -305,31 +302,31 @@ cdef inline int raw_encode_uint32(object array, uint32_t n) except -1:
         buff[0] = '\0'
         buff+=1
 
-    cdef Py_ssize_t ss = buff - (<bytearray>array).ob_bytes
-    (<bytearray>array).ob_size = ss
+    cdef Py_ssize_t ss = buff - array.ob_bytes
+    array.ob_size = ss
     return 0
 
-cdef inline encode_uint32(object array, object value):
+cdef inline encode_uint32(bytearray array, object value):
     raw_encode_uint32(array, value)
 
-cdef inline encode_int32(object array, object value):
+cdef inline encode_int32(bytearray array, object value):
     cdef int32_t n = value
     raw_encode_uint32(array, <uint32_t>n)
 
-cdef inline encode_sint32(object array, object value):
+cdef inline encode_sint32(bytearray array, object value):
     cdef int32_t n = value
     cdef uint32_t un = (n << 1) ^ (n >> 31)
 
     raw_encode_uint32(array, un)
 
-cdef inline int raw_encode_uint64(object array, uint64_t n) except -1:
+cdef inline int raw_encode_uint64(bytearray array, uint64_t n) except -1:
     cdef unsigned short int rem
     cdef Py_ssize_t size = PyByteArray_GET_SIZE(array)
-    bytearray_reserve(<bytearray>array, size + 20)
-    cdef char *buff = PyByteArray_AS_STRING(array) + size
+    bytearray_reserve(array, size + 20)
+    cdef char *buff = array.ob_bytes + size
 
     if 0!=n:
-        while( True):
+        while True:
             rem = <char>(n & 0x7f)
             n = n>>7
             if 0==n:
@@ -343,26 +340,26 @@ cdef inline int raw_encode_uint64(object array, uint64_t n) except -1:
     else:
         buff[0] = '\0'
         buff+=1
-    (<bytearray>array).ob_size = buff - PyByteArray_AS_STRING(array)
+    array.ob_size = buff - array.ob_bytes
     return 0
 
-cdef inline encode_uint64(object array, object value):
+cdef inline encode_uint64(bytearray array, object value):
     raw_encode_uint64(array, value)
 
-cdef inline encode_int64(object array, object value):
+cdef inline encode_int64(bytearray array, object value):
     cdef int64_t n = value
     raw_encode_uint64(array, <uint64_t>n)
 
-cdef inline encode_sint64(object array, object value):
+cdef inline encode_sint64(bytearray array, object value):
     cdef int64_t n = value
     cdef uint64_t un = (n<<1) ^ (n>>63)
     raw_encode_uint64(array, un)
 
-cdef inline int raw_encode_fixed32(object array, uint32_t n) except -1:
+cdef inline int raw_encode_fixed32(bytearray array, uint32_t n) except -1:
     cdef unsigned short int rem
     cdef Py_ssize_t size = PyByteArray_GET_SIZE(array)
     bytearray_resize(array, size + 4)
-    cdef char *buff = PyByteArray_AS_STRING(array) + size
+    cdef char *buff = array.ob_bytes + size
     cdef int i
 
     for i from 0 <= i < 4:
@@ -373,15 +370,15 @@ cdef inline int raw_encode_fixed32(object array, uint32_t n) except -1:
 
     return 0
 
-cdef inline encode_fixed32(object array, object value):
+cdef inline encode_fixed32(bytearray array, object value):
     raw_encode_fixed32(array, value)
 
-cdef inline encode_sfixed32(object array, object value):
+cdef inline encode_sfixed32(bytearray array, object value):
     cdef int32_t n = value
     cdef unsigned short int rem
     cdef Py_ssize_t size = PyByteArray_GET_SIZE(array)
     bytearray_resize(array, size + 4)
-    cdef char *buff = PyByteArray_AS_STRING(array) + size
+    cdef char *buff = array.ob_bytes + size
     cdef int i
 
     for i from 0 <= i < 4:
@@ -390,11 +387,11 @@ cdef inline encode_sfixed32(object array, object value):
         buff[0] = <char> rem
         buff += 1
 
-cdef inline int raw_encode_fixed64(object array, uint64_t n) except -1:
+cdef inline int raw_encode_fixed64(bytearray array, uint64_t n) except -1:
     cdef unsigned short int rem
     cdef Py_ssize_t size = PyByteArray_GET_SIZE(array)
     bytearray_resize(array, size + 8)
-    cdef char *buff = PyByteArray_AS_STRING(array) + size
+    cdef char *buff = array.ob_bytes + size
     cdef int i
 
     for i from 0 <= i < 8:
@@ -405,15 +402,15 @@ cdef inline int raw_encode_fixed64(object array, uint64_t n) except -1:
 
     return 0
 
-cdef inline encode_fixed64(object array, object value):
+cdef inline encode_fixed64(bytearray array, object value):
     raw_encode_fixed64(array, value)
 
-cdef inline encode_sfixed64(object array, object value):
+cdef inline encode_sfixed64(bytearray array, object value):
     cdef int64_t n = value
     cdef unsigned short int rem
     cdef Py_ssize_t size = PyByteArray_GET_SIZE(array)
     bytearray_resize(array, size + 8)
-    cdef char *buff = PyByteArray_AS_STRING(array) + size
+    cdef char *buff = array.ob_bytes + size
     cdef int i
 
     for i from 0 <= i < 8:
@@ -422,33 +419,33 @@ cdef inline encode_sfixed64(object array, object value):
         buff[0] = <char> rem
         buff += 1
 
-cdef inline encode_bytes(object array, object n):
+cdef inline encode_bytes(bytearray array, object n):
     cdef Py_ssize_t len = PySequence_Length(n)
     raw_encode_uint64(array, len)
     PySequence_InPlaceConcat(array, n)
 
-cdef inline encode_string(object array, object n):
+cdef inline encode_string(bytearray array, object n):
     cdef object encoded = PyUnicode_AsUTF8String(n)
     cdef Py_ssize_t len = PySequence_Length(encoded)
     raw_encode_uint64(array, len)
     PySequence_InPlaceConcat(array, encoded)
 
-cdef inline encode_bool(object array, object value):
+cdef inline encode_bool(bytearray array, object value):
     cdef bint b = value
     cdef Py_ssize_t size = PyByteArray_GET_SIZE(array)
     bytearray_resize(array, size + 1)
-    cdef char *buff = PyByteArray_AS_STRING(array) + size
+    cdef char *buff = array.ob_bytes + size
     buff[0] = b
 
-cdef inline encode_float(array, object value):
+cdef inline encode_float(bytearray array, object value):
     cdef float f = value
     raw_encode_fixed32(array, (<uint32_t*>&f)[0])
 
-cdef inline encode_double(array, object value):
+cdef inline encode_double(bytearray array, object value):
     cdef double d = value
     raw_encode_fixed64(array, (<uint64_t*>&d)[0])
 
-cdef inline encode_type(array, unsigned char wire_type, uint32_t index):
+cdef inline encode_type(bytearray array, unsigned char wire_type, uint32_t index):
     raw_encode_uint32(array, index<<3|wire_type)
 
 # }}}
