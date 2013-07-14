@@ -8,14 +8,14 @@ Benchmark shows that current version is already faster than official expremental
   > cd benchmark
   > ./bench.sh
   encode[google official pure python]:
-  10 loops, best of 3: 28.5 msec per loop
+  10 loops, best of 3: 48.6 msec per loop
   encode[google official cpp python]:
-  100 loops, best of 3: 7.32 msec per loop
+  100 loops, best of 3: 13.9 msec per loop
   encode[py-protobuf][experimental]:
-  1000 loops, best of 3: 1.45 msec per loop
+  100 loops, best of 3: 2.55 msec per loop
   decode[google official pure python]:
-  10 loops, best of 3: 21.3 msec per loop
+  10 loops, best of 3: 35.5 msec per loop
   decode[google official cpp python]:
-  100 loops, best of 3: 3.11 msec per loop
+  100 loops, best of 3: 3.79 msec per loop
   decode[py-protobuf][experimental]:
-  1000 loops, best of 3: 1.74 msec per loop
+  100 loops, best of 3: 3.02 msec per loop
