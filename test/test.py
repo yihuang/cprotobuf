@@ -1,7 +1,7 @@
 # coding: utf-8
 import itertools
 import pyximport; pyximport.install()
-from c_test import ProtoEntity, Field
+from pyprotobuf import ProtoEntity, Field
 import test_pb2
 
 class SubTest(ProtoEntity):
