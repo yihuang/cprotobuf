@@ -62,7 +62,7 @@ cdef inline int raw_decode_uint32(char **start, char *end, uint32_t *result) nog
     cdef char *pointer = start[0]
     cdef int counter = 0
     while True:
-        if pointer == end:
+        if pointer >= end:
             return -1
         byte = pointer[0]
         value |= (byte & 0x7f) << counter
@@ -79,8 +79,9 @@ cdef inline int raw_decode_uint64(char **start, char *end, uint64_t *result) nog
     cdef uint64_t byte
     cdef char *pointer = start[0]
     cdef int counter = 0
+
     while True:
-        if pointer == end:
+        if pointer >= end:
             return -1
         byte = pointer[0]
         value |= (byte & 0x7f) << counter
