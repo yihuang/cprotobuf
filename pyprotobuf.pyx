@@ -46,8 +46,8 @@ cdef class RepeatedContainer(list):
     def __init__(self, cls):
         self.klass = cls
 
-    def add(self):
-        obj = self.klass()
+    def add(self, **kwargs):
+        obj = self.klass(**kwargs)
         self.append(obj)
         return obj
 
@@ -198,6 +198,8 @@ class MetaProtoEntity(type):
         cdef Field f
         for name, v in attrs.items():
             if name.startswith('__'):
+                continue
+            if not isinstance(v, Field):
                 continue
             f = v
             f.name = name
