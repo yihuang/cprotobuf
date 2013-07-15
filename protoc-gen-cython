@@ -1,0 +1,130 @@
+#!/usr/bin/python
+
+import os
+from collections import defaultdict
+from StringIO import StringIO
+from google.protobuf.descriptor import FieldDescriptor
+from google.protobuf.compiler.plugin_pb2 import CodeGeneratorRequest, CodeGeneratorResponse
+from sys import stdin, stdout, stderr
+
+serialized = stdin.read()
+#serialized = open('/tmp/dump', 'rb').read().decode('base64')
+
+#response = CodeGeneratorResponse()
+#f = response.file.add()
+#f.name = 'dump'
+#f.content = serialized.encode('base64')
+#stdout.write(response.SerializeToString())
+#exit(0)
+
+request = CodeGeneratorRequest()
+request.ParseFromString(serialized)
+response = CodeGeneratorResponse()
+
+CPP_TYPES = {
+    FieldDescriptor.TYPE_DOUBLE:    'double',
+    FieldDescriptor.TYPE_FLOAT:     'float',
+    FieldDescriptor.TYPE_INT32:     'int32',
+    FieldDescriptor.TYPE_INT64:     'int64',
+    FieldDescriptor.TYPE_UINT32:    'uint32',
+    FieldDescriptor.TYPE_UINT64:    'uint64',
+    FieldDescriptor.TYPE_FIXED32:   'fixed32',
+    FieldDescriptor.TYPE_FIXED64:   'fixed64',
+    FieldDescriptor.TYPE_SFIXED32:  'sfixed32',
+    FieldDescriptor.TYPE_SFIXED64:  'sfixed64',
+    FieldDescriptor.TYPE_SINT32:    'sint32',
+    FieldDescriptor.TYPE_SINT64:    'sint64',
+    FieldDescriptor.TYPE_BOOL:      'bool',
+    FieldDescriptor.TYPE_STRING:    'string',
+    FieldDescriptor.TYPE_BYTES:     'bytes',
+    FieldDescriptor.TYPE_ENUM:      'enum',
+}
+
+keywords = ['static', 'class']
+def fieldname(s):
+    if s in keywords:
+        s = s+'_'
+    return s
+
+def typename(type_name, type):
+    if type == FieldDescriptor.TYPE_MESSAGE:
+        #return type_name
+        parts = type_name.split('.', 2)
+        if len(parts)>2:
+            return parts[2].replace('.', '::')
+        else:
+            return '.'.join(parts).replace('.', '::')
+    else:
+        return '\'%s\'' % CPP_TYPES[type]
+
+def write_field(fp, desc):
+    ftype = typename(desc.type_name, desc.type)
+    fname = fieldname(desc.name)
+    fnumber = desc.number
+    txt = '    %(fname)-15s = Field(%(ftype)s,\t%(fnumber)d'
+    if desc.label == FieldDescriptor.LABEL_REQUIRED:
+        txt += ')'
+    elif desc.label == FieldDescriptor.LABEL_OPTIONAL:
+        txt += ', required=False)'
+    elif desc.label == FieldDescriptor.LABEL_REPEATED:
+        txt += ', repeated=True)'
+    print >>fp, txt % locals()
+
+def write_message(fp, message_descriptor):
+    classname = message_descriptor.name
+    print >>fp, 'class %(classname)s(ProtoEntity):' % locals()
+
+    for descriptor in message_descriptor.enum_type:
+        write_enum(fp, descriptor, 4)
+
+    if message_descriptor.field:
+        for field_descriptor in message_descriptor.field:
+            write_field(fp, field_descriptor)
+    else:
+        print >>fp, '    pass'
+
+    print >>fp, ''
+
+def write_enum(fp, descriptor, indent=0):
+    print >>fp, '%s# enum %s' % (' '*indent, descriptor.name)
+    for value in descriptor.value:
+        print >>fp, '%s%s=%d'%(' '*indent, value.name, value.number)
+
+def module_file(file_descriptor):
+    basename = os.path.splitext(file_descriptor.name)[0]
+    filename = '%s_pb2.py' % basename
+    package = file_descriptor.package
+    fp = StringIO()
+    print >>fp, '# coding: utf-8'
+    print >>fp, 'from pyprotobuf import ProtoEntity, Field'
+
+    for descriptor in file_descriptor.enum_type:
+        write_enum(fp, descriptor)
+
+    for descriptor in file_descriptor.message_type:
+        write_message(fp, descriptor)
+
+    return filename, fp.getvalue()
+
+packages = defaultdict(list)
+
+for desc in request.proto_file:
+    packages[desc.package].append(desc)
+
+for pkg, desces in packages.items():
+    f = response.file.add()
+    f.name = '%s_pb.py' % pkg
+
+    fp = StringIO()
+    print >>fp, '# coding: utf-8'
+    print >>fp, 'from pyprotobuf import ProtoEntity, Field'
+
+    for desc in desces:
+        for descriptor in desc.message_type:
+            write_message(fp, descriptor)
+
+    f.content = fp.getvalue()
+    #print f.content
+
+stdout.write(response.SerializeToString())
+exit(0)

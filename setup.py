@@ -9,5 +9,6 @@ ext_modules = [ Extension("pyprotobuf", ["pyprotobuf.pyx"])
 setup(
     name = 'py-protobuf',
     cmdclass = {'build_ext': build_ext},
-    ext_modules = ext_modules
+    ext_modules = ext_modules,
+    scripts = [ 'protoc-gen-cython' ],
 )
