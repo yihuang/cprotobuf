@@ -3,6 +3,10 @@
 import pyximport; pyximport.install()
 from c_test import ProtoEntity, Field
 
+TYPE1 = 1
+TYPE2 = 1
+TYPE3 = 1
+
 class SubTest(ProtoEntity):
     a = Field('int32',      1)
     b = Field('sint32',     2)
@@ -26,6 +30,7 @@ class Test(ProtoEntity):
     p = Field('int32',      16, repeated=True)
     q = Field('int32',      17, repeated=True, packed=True)
     r = Field(SubTest,      18, repeated=True)
+    s = Field('enum',       19)
 
 def encode():
     for i in range(500):
@@ -58,6 +63,7 @@ def encode():
         r = t.r.add()
         r.a = 150
         r.b = -150
+        t.s = TYPE2
         t.SerializeToString()
 
 def decode():

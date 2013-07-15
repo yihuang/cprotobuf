@@ -1,5 +1,5 @@
 # coding: utf-8
-from test_pb2 import Test
+from test_pb2 import Test, TYPE2
 
 def encode():
     for i in range(500):
@@ -32,6 +32,7 @@ def encode():
         r = t.r.add()
         r.a = 150
         r.b = -150
+        t.s = TYPE2
         t.SerializeToString()
 
 def decode():

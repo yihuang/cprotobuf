@@ -27,6 +27,7 @@ class Test(ProtoEntity):
     p = Field('int32',      16, repeated=True)
     q = Field('int32',      17, repeated=True, packed=True)
     r = Field(SubTest,      18, repeated=True)
+    s = Field('enum',       19)
 
 data1 = dict(
     a = 2147483647,
@@ -55,6 +56,7 @@ data1 = dict(
             b = -150
         ),
     ],
+    s = test_pb2.TYPE1,
 )
 
 data2 = dict(
@@ -72,6 +74,7 @@ data2 = dict(
     l = 18446744073709551615,
     m = u'测试',
     n = False,
+    s = test_pb2.TYPE2,
 )
 
 def set_obj(o, d):
