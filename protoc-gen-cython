@@ -90,22 +90,6 @@ def write_enum(fp, descriptor, indent=0):
     for value in descriptor.value:
         print >>fp, '%s%s=%d'%(' '*indent, value.name, value.number)
 
-def module_file(file_descriptor):
-    basename = os.path.splitext(file_descriptor.name)[0]
-    filename = '%s_pb2.py' % basename
-    package = file_descriptor.package
-    fp = StringIO()
-    print >>fp, '# coding: utf-8'
-    print >>fp, 'from pyprotobuf import ProtoEntity, Field'
-
-    for descriptor in file_descriptor.enum_type:
-        write_enum(fp, descriptor)
-
-    for descriptor in file_descriptor.message_type:
-        write_message(fp, descriptor)
-
-    return filename, fp.getvalue()
-
 packages = defaultdict(list)
 
 for desc in request.proto_file:
@@ -113,13 +97,16 @@ for desc in request.proto_file:
 
 for pkg, desces in packages.items():
     f = response.file.add()
-    f.name = '%s_pb.py' % pkg
+    f.name = '%s_pb.py' % pkg.replace('.', '_')
 
     fp = StringIO()
     print >>fp, '# coding: utf-8'
     print >>fp, 'from pyprotobuf import ProtoEntity, Field'
 
     for desc in desces:
+        print >>fp, '# file: %s.proto'%desc.name
+        for descriptor in desc.enum_type:
+            write_enum(fp, descriptor)
         for descriptor in desc.message_type:
             write_message(fp, descriptor)
 
