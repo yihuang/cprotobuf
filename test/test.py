@@ -26,6 +26,7 @@ class Test(ProtoEntity):
     o = Field(SubTest,      15)
     p = Field('int32',      16, repeated=True)
     q = Field('int32',      17, repeated=True, packed=True)
+    r = Field(SubTest,      18, repeated=True)
 
 data1 = dict(
     a = 2147483647,
@@ -48,6 +49,12 @@ data1 = dict(
     ),
     p = [1,2,3],
     q = [1,2,3],
+    r = [
+        dict(
+            a = 150,
+            b = -150
+        ),
+    ],
 )
 
 data2 = dict(
@@ -87,7 +94,10 @@ def eq_obj(data, obj1, obj2):
         v2 = getattr(obj2, f)
         if isinstance(v, list):
             for a, b in itertools.izip_longest(v1, v2):
-                assert a==b, (f, a, b)
+                if isinstance(v[0], dict):
+                    eq_obj(v[0], a, b)
+                else:
+                    assert a==b, (f, a, b)
         elif isinstance(v, dict):
             eq_obj(v, v1, v2)
         else:

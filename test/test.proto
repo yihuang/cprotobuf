@@ -21,4 +21,5 @@ message Test {
     optional SubTest    o = 15;
     repeated int32      p = 16;
     repeated int32      q = 17 [packed=true];
+    repeated SubTest    r = 18;
 }
