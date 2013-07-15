@@ -426,10 +426,11 @@ cdef inline encode_bytes(bytearray array, object n):
     PySequence_InPlaceConcat(array, n)
 
 cdef inline encode_string(bytearray array, object n):
-    cdef object encoded = PyUnicode_AsUTF8String(n)
-    cdef Py_ssize_t len = PySequence_Length(encoded)
+    if isinstance(n, unicode):
+        n = PyUnicode_AsUTF8String(n)
+    cdef Py_ssize_t len = PySequence_Length(n)
     raw_encode_uint64(array, len)
-    PySequence_InPlaceConcat(array, encoded)
+    PySequence_InPlaceConcat(array, n)
 
 cdef inline encode_bool(bytearray array, object value):
     cdef bint b = value
