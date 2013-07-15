@@ -40,6 +40,17 @@ default_objects = {
     'float': 0.0,
 }
 
+cdef class RepeatedContainer(list):
+    cdef object klass
+
+    def __init__(self, cls):
+        self.klass = cls
+
+    def add(self):
+        obj = self.klass()
+        self.append(obj)
+        return obj
+
 cdef class Field(object):
 
     cdef public bytes name
@@ -56,6 +67,8 @@ cdef class Field(object):
     cdef Decoder decoder
 
     def __init__(self, type, index, required=True, repeated=False, packed=False, default=None):
+        assert type in wire_types or issubclass(type, ProtoEntity), 'invalid type %s' % type
+
         self.type = type
         self.index = index
         self.required = required
@@ -67,7 +80,7 @@ cdef class Field(object):
         else:
             self.klass = None
 
-        self.default = default or self.get_default()
+        self.default = default or default_objects.get(self.type)
 
         self.wire_type = self.get_wire_type()
         self.encoder = self.get_encoder()
@@ -76,12 +89,22 @@ cdef class Field(object):
         if self.packed:
             assert self.repeated, 'packed must be used with repeated'
 
-    cdef get_default(self):
+    def __get__(self, instance, type):
+        if not instance:
+            return self
+        value = None
         if self.repeated:
-            return list
-        if self.klass:
-            return self.klass
-        return default_objects[self.type]
+            if self.klass:
+                value = RepeatedContainer(self.klass)
+            else:
+                value = []
+            setattr(instance, self.name, value)
+        elif self.klass:
+            value = self.klass()
+            setattr(instance, self.name, value)
+        else:
+            value = self.default
+        return value
 
     cdef unsigned char get_wire_type(self):
         if self.packed:
@@ -89,7 +112,6 @@ cdef class Field(object):
         try:
             return wire_types[self.type]
         except KeyError:
-            #assert issubclass(self.type, ProtoEntity)
             return 2
 
     cdef Encoder get_encoder(self):
@@ -173,24 +195,20 @@ class MetaProtoEntity(type):
         _fields = []
         _fieldsmap = {}
         _fieldsmap_by_name = {}
-        _defaults = {}
         cdef Field f
         for name, v in attrs.items():
-            if not isinstance(v, Field):
-                continue
             if name.startswith('__'):
                 continue
             f = v
             f.name = name
-            _fields.append(f)
+            assert f.index not in _fieldsmap, 'duplicate field index %s' % f.index
             _fieldsmap[f.index] = f
-            _fieldsmap_by_name[f.name] = f
-            _defaults[f.name] = f.default
-        newcls = super(MetaProtoEntity, cls).__new__(cls, clsname, bases, {})
+            _fields.append(f)
+            _fieldsmap_by_name[name] = f
+        newcls = super(MetaProtoEntity, cls).__new__(cls, clsname, bases, attrs)
         newcls._fields = _fields
         newcls._fieldsmap = _fieldsmap
         newcls._fieldsmap_by_name = _fieldsmap_by_name
-        newcls._defaults = _defaults
         return newcls
 
 class ProtoEntity(object):
@@ -198,15 +216,6 @@ class ProtoEntity(object):
 
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
-
-    def __getattr__(self, name):
-        value = self.__class__._defaults[name]
-        if not value:
-            raise AttributeError('attribute %s is not found' % name)
-        if callable(value):
-            value = value()
-        self.__dict__[name] = value
-        return value
 
     def SerializeToString(self):
         cdef bytearray buf = bytearray()
