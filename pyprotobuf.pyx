@@ -130,7 +130,7 @@ cdef class Field(object):
         if self.type == 'bool':
             return encode_bool
         if self.type == 'enum':
-            return encode_int32
+            return encode_int64     # compatible with official protobuf
         if self.type == 'fixed64':
             return encode_fixed64
         if self.type == 'sfixed64':
@@ -167,7 +167,7 @@ cdef class Field(object):
         if self.type == 'bool':
             return decode_bool
         if self.type == 'enum':
-            return decode_int32
+            return decode_int64     # compatible with official protobuf
         if self.type == 'fixed32':
             return decode_fixed32
         if self.type == 'fixed64':
