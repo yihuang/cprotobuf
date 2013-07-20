@@ -1,7 +1,7 @@
 # coding: utf-8
 import itertools
 import pyximport; pyximport.install()
-from pyprotobuf import ProtoEntity, Field
+from pyprotobuf import ProtoEntity, Field, encode_data
 import test_pb2
 
 class SubTest(ProtoEntity):
@@ -114,6 +114,10 @@ def test(data):
 
     bs1 = e_obj1.SerializeToString()
     bs2 = str(e_obj2.SerializeToString())
+
+    bs3 = bytearray()
+    encode_data(bs3, Test, data)
+    assert bs2 == bs3
 
     if len(bs1) != len(bs2):
         print len(bs1), repr(bs1)

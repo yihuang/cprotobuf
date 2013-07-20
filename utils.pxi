@@ -15,7 +15,7 @@ cdef extern from "Python.h":
     object PyUnicode_FromStringAndSize(char *buff, Py_ssize_t len)
 
 ctypedef object(*Decoder)(char **pointer, char *end)
-ctypedef object(*Encoder)(bytearray array, object value)
+ctypedef object(*Encoder)(Field _f, bytearray array, object value)
 
 class InternalDecodeError(Exception):
     pass
@@ -307,14 +307,14 @@ cdef inline int raw_encode_uint32(bytearray array, uint32_t n) except -1:
     array.ob_size = ss
     return 0
 
-cdef inline encode_uint32(bytearray array, object value):
+cdef inline encode_uint32(Field _f, bytearray array, object value):
     raw_encode_uint32(array, value)
 
-cdef inline encode_int32(bytearray array, object value):
+cdef inline encode_int32(Field _f, bytearray array, object value):
     cdef int32_t n = value
     raw_encode_uint32(array, <uint32_t>n)
 
-cdef inline encode_sint32(bytearray array, object value):
+cdef inline encode_sint32(Field _f, bytearray array, object value):
     cdef int32_t n = value
     cdef uint32_t un = (n << 1) ^ (n >> 31)
 
@@ -344,14 +344,14 @@ cdef inline int raw_encode_uint64(bytearray array, uint64_t n) except -1:
     array.ob_size = buff - array.ob_bytes
     return 0
 
-cdef inline encode_uint64(bytearray array, object value):
+cdef inline encode_uint64(Field _f, bytearray array, object value):
     raw_encode_uint64(array, value)
 
-cdef inline encode_int64(bytearray array, object value):
+cdef inline encode_int64(Field _f, bytearray array, object value):
     cdef int64_t n = value
     raw_encode_uint64(array, <uint64_t>n)
 
-cdef inline encode_sint64(bytearray array, object value):
+cdef inline encode_sint64(Field _f, bytearray array, object value):
     cdef int64_t n = value
     cdef uint64_t un = (n<<1) ^ (n>>63)
     raw_encode_uint64(array, un)
@@ -371,10 +371,10 @@ cdef inline int raw_encode_fixed32(bytearray array, uint32_t n) except -1:
 
     return 0
 
-cdef inline encode_fixed32(bytearray array, object value):
+cdef inline encode_fixed32(Field _f, bytearray array, object value):
     raw_encode_fixed32(array, value)
 
-cdef inline encode_sfixed32(bytearray array, object value):
+cdef inline encode_sfixed32(Field _f, bytearray array, object value):
     cdef int32_t n = value
     cdef unsigned short int rem
     cdef Py_ssize_t size = PyByteArray_GET_SIZE(array)
@@ -403,10 +403,10 @@ cdef inline int raw_encode_fixed64(bytearray array, uint64_t n) except -1:
 
     return 0
 
-cdef inline encode_fixed64(bytearray array, object value):
+cdef inline encode_fixed64(Field _f, bytearray array, object value):
     raw_encode_fixed64(array, value)
 
-cdef inline encode_sfixed64(bytearray array, object value):
+cdef inline encode_sfixed64(Field _f, bytearray array, object value):
     cdef int64_t n = value
     cdef unsigned short int rem
     cdef Py_ssize_t size = PyByteArray_GET_SIZE(array)
@@ -420,30 +420,30 @@ cdef inline encode_sfixed64(bytearray array, object value):
         buff[0] = <char> rem
         buff += 1
 
-cdef inline encode_bytes(bytearray array, object n):
+cdef inline encode_bytes(Field _f, bytearray array, object n):
     cdef Py_ssize_t len = PySequence_Length(n)
     raw_encode_uint64(array, len)
     PySequence_InPlaceConcat(array, n)
 
-cdef inline encode_string(bytearray array, object n):
+cdef inline encode_string(Field _f, bytearray array, object n):
     if isinstance(n, unicode):
         n = PyUnicode_AsUTF8String(n)
     cdef Py_ssize_t len = PySequence_Length(n)
     raw_encode_uint64(array, len)
     PySequence_InPlaceConcat(array, n)
 
-cdef inline encode_bool(bytearray array, object value):
+cdef inline encode_bool(Field _f, bytearray array, object value):
     cdef bint b = value
     cdef Py_ssize_t size = PyByteArray_GET_SIZE(array)
     bytearray_resize(array, size + 1)
     cdef char *buff = array.ob_bytes + size
     buff[0] = b
 
-cdef inline encode_float(bytearray array, object value):
+cdef inline encode_float(Field _f, bytearray array, object value):
     cdef float f = value
     raw_encode_fixed32(array, (<uint32_t*>&f)[0])
 
-cdef inline encode_double(bytearray array, object value):
+cdef inline encode_double(Field _f, bytearray array, object value):
     cdef double d = value
     raw_encode_fixed64(array, (<uint64_t*>&d)[0])
 
