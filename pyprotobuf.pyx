@@ -242,10 +242,15 @@ class ProtoEntity(object):
     def __unicode__(self):
         cdef Field f
         buf = []
+        d = self.__dict__
         for f in self._fields:
-            if not f.required:
+            value = d.get(f.name)
+            if value==None:
                 continue
-            buf.append('%s = %s' % (f.name, getattr(self, f.name)))
+            if f.repeated:
+                buf.append('%s = [%s]' % (f.name, ','.join(map(unicode, value))))
+            else:
+                buf.append('%s = %s' % (f.name, value))
         return '\n'.join(buf)
 
     def __str__(self):
