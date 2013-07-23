@@ -248,10 +248,10 @@ class ProtoEntity(object):
             if value==None:
                 continue
             if f.repeated:
-                buf.append('%s = [%s]' % (f.name, ','.join(map(unicode, value))))
+                buf.append(u'%s = [%s]' % (f.name, u','.join(map(unicode, value))))
             else:
-                buf.append('%s = %s' % (f.name, value))
-        return '\n'.join(buf)
+                buf.append(u'%s = %s' % (f.name, unicode(value)))
+        return u'\n'.join(buf)
 
     def __str__(self):
         return unicode(self).encode('utf-8')
