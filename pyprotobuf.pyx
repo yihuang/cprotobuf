@@ -221,7 +221,7 @@ class ProtoEntity(object):
 
     def SerializeToString(self):
         cdef bytearray buf = bytearray()
-        encode_object(buf, self)
+        encode_data(buf, type(self), self.__dict__)
         return buf
 
     def ParseFromString(self, bytes s):
@@ -242,25 +242,24 @@ class ProtoEntity(object):
     def __unicode__(self):
         cdef Field f
         buf = []
+        d = self.__dict__
         for f in self._fields:
-            if not f.required:
+            value = d.get(f.name)
+            if value==None:
                 continue
-            buf.append('%s = %s' % (f.name, getattr(self, f.name)))
-        return '\n'.join(buf)
+            if f.repeated:
+                buf.append(u'%s = [%s]' % (f.name, u','.join(map(unicode, value))))
+            else:
+                buf.append(u'%s = %s' % (f.name, unicode(value)))
+        return u'\n'.join(buf)
 
     def __str__(self):
         return unicode(self).encode('utf-8')
 
-cdef inline encode_subobject(bytearray array, value):
-    cdef bytearray sub_buf = bytearray()
-    encode_object(sub_buf, value)
-    encode_bytes(array, sub_buf)
-
-cdef inline encode_object(bytearray buf, self):
+def encode_data(bytearray buf, cls, dict d):
     cdef bytearray buf1
-    cdef dict d = self.__dict__
     cdef Field f
-    for f in <list>self._fields:
+    for f in <list>cls._fields:
         value = d.get(f.name)
         if value is None:
             continue
@@ -268,16 +267,24 @@ cdef inline encode_object(bytearray buf, self):
             encode_type(buf, f.wire_type, f.index)
             buf1 = bytearray()
             for item in <list?>value:
-                f.encoder(buf1, item)
-            encode_bytes(buf, buf1)
+                f.encoder(f, buf1, item)
+            encode_bytes(f, buf, buf1)
         else:
             if f.repeated:
                 for item in <list?>value:
                     encode_type(buf, f.wire_type, f.index)
-                    f.encoder(buf, item)
+                    f.encoder(f, buf, item)
             else:
                 encode_type(buf, f.wire_type, f.index)
-                f.encoder(buf, value)
+                f.encoder(f, buf, value)
+
+cdef inline encode_subobject(Field f, bytearray array, value):
+    cdef bytearray sub_buf = bytearray()
+    if isinstance(value, dict):
+        encode_data(sub_buf, f.type, value)
+    else:
+        encode_data(sub_buf, f.type, value.__dict__)
+    encode_bytes(f, array, sub_buf)
 
 cdef inline int decode_object(object self, char **pointer, char *end) except -1:
     cdef dict fieldsmap = self._fieldsmap
