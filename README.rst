@@ -1,6 +1,5 @@
-A pure python implementation of protobuf encoding/decoding. intent to rewrite part of it to cython for performance.
-
-Benchmark shows that current version is already faster than official expremental cpp python implementation.
+A minimal fast protobuf implementation with cython.
+Benchmark shows that it's much faster than google official expremental cpp-python implementation.
 
 ::
 
