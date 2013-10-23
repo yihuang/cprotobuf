@@ -266,12 +266,12 @@ def encode_data(bytearray buf, cls, dict d):
         if f.packed:
             encode_type(buf, f.wire_type, f.index)
             buf1 = bytearray()
-            for item in <list?>value:
+            for item in value:
                 f.encoder(f, buf1, item)
             encode_bytes(f, buf, buf1)
         else:
             if f.repeated:
-                for item in <list?>value:
+                for item in value:
                     encode_type(buf, f.wire_type, f.index)
                     f.encoder(f, buf, item)
             else:
