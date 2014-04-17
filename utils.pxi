@@ -151,7 +151,7 @@ cdef inline int skip_unknown_field(char **pointer, char *end, int wtype) nogil:
     elif wtype == 2:
         if raw_decode_uint32(pointer, end, &size):
             return -1
-        if pointer[0]+size >= end:
+        if pointer[0]+size > end:
             return -1
         pointer[0] += size
     elif wtype == 5:
