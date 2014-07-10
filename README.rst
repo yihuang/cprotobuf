@@ -13,13 +13,13 @@ Benchmark
   10 loops, best of 3: 68.8 msec per loop
   encode[google official cpp python]:
   100 loops, best of 3: 19.4 msec per loop
-  encode[py-protobuf][cython]:
+  encode[py-protobuf][cprotobuf]:
   100 loops, best of 3: 3.58 msec per loop
   decode[google official pure python]:
   10 loops, best of 3: 47.5 msec per loop
   decode[google official cpp python]:
   100 loops, best of 3: 4.55 msec per loop
-  decode[py-protobuf][cython]:
+  decode[py-protobuf][cprotobuf]:
   100 loops, best of 3: 3.98 msec per loop
 
 Tutorial
@@ -56,14 +56,14 @@ Then you compile it with provided plugin:
 
 .. code-block:: bash
 
-    protoc --cython_out=. person.proto people.proto
+    protoc --cprotobuf_out=. person.proto people.proto
 
 You get a python module ``foo_pb.py`` , with readable content:
 
 .. code-block:: python
 
     # coding: utf-8
-    from pyprotobuf import ProtoEntity, Field
+    from cprotobuf import ProtoEntity, Field
     # file: person.proto.proto
     class Person(ProtoEntity):
         id              = Field('int32',	1)
@@ -114,9 +114,9 @@ reflection
     >>> Person._fields[0].name
     'email'
     >>> Person._fieldsmap
-    {1: <pyprotobuf.Field object at 0xb74a538c>, 2: <pyprotobuf.Field object at 0xb74a541c>, 3: <pyprotobuf.Field object at 0xb74a5c8c>}
+    {1: <cprotobuf.Field object at 0xb74a538c>, 2: <cprotobuf.Field object at 0xb74a541c>, 3: <cprotobuf.Field object at 0xb74a5c8c>}
     >>> Person._fieldsmap_by_name
-    {'email': <pyprotobuf.Field object at 0xb74a5c8c>, 'name': <pyprotobuf.Field object at 0xb74a541c>, 'id': <pyprotobuf.Field object at 0xb74a538c>}
+    {'email': <cprotobuf.Field object at 0xb74a5c8c>, 'name': <cprotobuf.Field object at 0xb74a541c>, 'id': <cprotobuf.Field object at 0xb74a538c>}
 
 repeated container
 ~~~~~~~~~~~~~~~~~~
@@ -151,7 +151,7 @@ If you already have your messages represented as ``list`` and ``dict``, you can 
 
 .. code-block:: python
 
-    >>> from pyprotobuf import encode_data
+    >>> from cprotobuf import encode_data
     >>> from foo_pb import Person, People
     >>> s = encode_data(People, [
     ...     { 'id': 1, 'name': 'tom', 'email': 'tom@gmail.com' }
