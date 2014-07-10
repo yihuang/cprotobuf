@@ -58,7 +58,9 @@ Then you compile it with provided plugin:
 
     protoc --cprotobuf_out=. person.proto people.proto
 
-You get a python module ``foo_pb.py`` , with readable content:
+You get a python module ``foo_pb.py`` , cprotobuf generate a python module for each package rather than each protocol file.
+
+The generated code is quite readable:
 
 .. code-block:: python
 
