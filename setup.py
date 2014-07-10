@@ -2,11 +2,11 @@
 from distutils.core import setup
 from distutils.extension import Extension
 
-ext_modules = [ Extension("pyprotobuf", ["pyprotobuf.c"])
+ext_modules = [ Extension("cprotobuf", ["cprotobuf.c"])
               ]
 
 setup(
-    name = 'py-protobuf',
+    name = 'cprotobuf',
     ext_modules = ext_modules,
-    scripts = [ 'protoc-gen-cython' ],
+    scripts = [ 'protoc-gen-cprotobuf' ],
 )

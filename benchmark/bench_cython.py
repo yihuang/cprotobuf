@@ -1,7 +1,7 @@
 # coding: utf-8
 
 import pyximport; pyximport.install()
-from pyprotobuf import ProtoEntity, Field
+from cprotobuf import ProtoEntity, Field
 
 TYPE1 = 1
 TYPE2 = 1
