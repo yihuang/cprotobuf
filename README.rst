@@ -121,7 +121,7 @@ reflection
 repeated container
 ~~~~~~~~~~~~~~~~~~
 
-We use a ``RepeatedContainer`` to represent repeated field, ``RepeatedContainer`` is inherited from ``list``, so you can manipulate it like a ``list``, or with apis like google's implementation.
+We use ``RepeatedContainer`` to represent repeated field, ``RepeatedContainer`` is inherited from ``list``, so you can manipulate it like a ``list``, or with apis like google's implementation.
 
 .. code-block:: python
 
@@ -144,8 +144,8 @@ We use a ``RepeatedContainer`` to represent repeated field, ``RepeatedContainer`
     ...     'email' : 'lily@gmail.com',
     ... })
 
-fast `encode_data`
-~~~~~~~~~~~~~~~~~~
+encode raw data fast
+~~~~~~~~~~~~~~~~~~~~
 
 If you already have your messages represented as ``list`` and ``dict``, you can encode it without constructing intermidiate objects, getting ride of a lot of overhead:
 
