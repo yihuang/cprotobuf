@@ -1,6 +1,8 @@
 A minimal fast protobuf implementation with cython.
 Benchmark shows that it's much faster than google official expremental cpp-python implementation.
 
+I've been using it in production since 2013, only tested with python2.7, feedback on other python release is welcome.
+
 Benchmark
 =========
 
