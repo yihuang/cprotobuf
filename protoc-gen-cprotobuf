@@ -3,7 +3,7 @@
 import os
 from collections import defaultdict
 from StringIO import StringIO
-from google_pb import CodeGeneratorRequest, CodeGeneratorResponse, FieldDescriptorProto
+from cprotobuf.plugin_pb import CodeGeneratorRequest, CodeGeneratorResponse, FieldDescriptorProto
 from sys import stdin, stdout, stderr
 
 CPP_TYPES = {
@@ -172,6 +172,6 @@ if __name__ == '__main__':
     import sys
     if len(sys.argv) > 1:
         in_ = sys.argv[1]
-        main(open(in_), stdout)
+        main(open(in_, 'rb'), stdout)
     else:
         main(stdin, stdout)
