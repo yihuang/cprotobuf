@@ -67,7 +67,7 @@ cdef class Field(object):
     cdef Decoder decoder
 
     def __init__(self, type, index, required=True, repeated=False, packed=False, default=None):
-        assert type in wire_types or issubclass(type, ProtoEntity), 'invalid type %s' % type
+        assert type in wire_types or isinstance(type, (str, unicode)) or issubclass(type, ProtoEntity), 'invalid type %s' % type
 
         self.type = type
         self.index = index
@@ -76,6 +76,9 @@ cdef class Field(object):
         self.packed = packed
 
         if inspect.isclass(self.type) and issubclass(self.type, ProtoEntity):
+            self.klass = self.type
+        elif self.type not in default_objects:
+            # sub message specified as name
             self.klass = self.type
         else:
             self.klass = None
@@ -89,17 +92,24 @@ cdef class Field(object):
         if self.packed:
             assert self.repeated, 'packed must be used with repeated'
 
+    cdef instantiate_klass(self):
+        if self.klass and isinstance(self.klass, (str, unicode)):
+            self.klass = get_proto(self.klass)
+
     def __get__(self, instance, type):
         if not instance:
             return self
         value = None
+
         if self.repeated:
             if self.klass:
+                self.instantiate_klass()
                 value = RepeatedContainer(self.klass)
             else:
                 value = []
             setattr(instance, self.name, value)
         elif self.klass:
+            self.instantiate_klass()
             value = self.klass()
             setattr(instance, self.name, value)
         else:
@@ -147,9 +157,7 @@ cdef class Field(object):
             return encode_float
         if self.type == 'double':
             return encode_double
-        if issubclass(self.type, ProtoEntity):
-            return encode_subobject
-        return NULL
+        return encode_subobject
 
     cdef Decoder get_decoder(self):
         if self.type == 'int32':
@@ -186,6 +194,13 @@ cdef class Field(object):
             return decode_double
         return NULL
 
+cdef dict _proto_classes = {}
+cpdef get_proto(name):
+    return _proto_classes[name]
+
+def register_proto(name, cls):
+    _proto_classes[name] = cls
+
 class MetaProtoEntity(type):
     def __new__(cls, clsname, bases, attrs):
         if clsname == 'ProtoEntity':
@@ -211,6 +226,7 @@ class MetaProtoEntity(type):
         newcls._fields = _fields
         newcls._fieldsmap = _fieldsmap
         newcls._fieldsmap_by_name = _fieldsmap_by_name
+        register_proto(clsname, newcls)
         return newcls
 
 class ProtoEntity(object):
@@ -280,10 +296,13 @@ def encode_data(bytearray buf, cls, dict d):
 
 cdef inline encode_subobject(Field f, bytearray array, value):
     cdef bytearray sub_buf = bytearray()
+    cdef object cls = f.type
+    if isinstance(cls, (str, unicode)):
+        cls = get_proto(cls)
     if isinstance(value, dict):
-        encode_data(sub_buf, f.type, value)
+        encode_data(sub_buf, cls, value)
     else:
-        encode_data(sub_buf, f.type, value.__dict__)
+        encode_data(sub_buf, cls, value.__dict__)
     encode_bytes(f, array, sub_buf)
 
 cdef inline int decode_object(object self, char **pointer, char *end) except -1:

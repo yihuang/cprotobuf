@@ -3,31 +3,7 @@ import itertools
 import pyximport; pyximport.install()
 from cprotobuf import ProtoEntity, Field, encode_data
 import test_pb2
-
-class SubTest(ProtoEntity):
-    a = Field('int32',      1)
-    b = Field('sint32',     2)
-
-class Test(ProtoEntity):
-    a = Field('int32',      1)
-    b = Field('int64',      2)
-    c = Field('sint32',     3)
-    d = Field('sint64',     4)
-    e = Field('fixed32',    5)
-    f = Field('fixed64',    6)
-    g = Field('sfixed32',   7)
-    h = Field('sfixed64',   8)
-    i = Field('float',      9)
-    j = Field('double',     10)
-    k = Field('uint32',     11)
-    l = Field('uint64',     12)
-    m = Field('string',     13)
-    n = Field('bool',       14)
-    o = Field(SubTest,      15)
-    p = Field('int32',      16, repeated=True)
-    q = Field('int32',      17, repeated=True, packed=True)
-    r = Field(SubTest,      18, repeated=True)
-    s = Field('enum',       19)
+import test_pb
 
 data1 = dict(
     a = 2147483647,
@@ -57,6 +33,22 @@ data1 = dict(
         ),
     ],
     s = test_pb2.TYPE1,
+    foo = {
+        'bar': {
+            'foo': {
+                'bar': {
+                    'foo': {
+                        'n': 1,
+                    },
+                }
+            },
+        }
+    },
+    self = {
+        'self': {
+            'n': 1,
+        },
+    }
 )
 
 data2 = dict(
@@ -109,14 +101,14 @@ def eq_obj(data, obj1, obj2):
 def test(data):
     e_obj1 = test_pb2.Test()
     set_obj(e_obj1, data)
-    e_obj2 = Test()
+    e_obj2 = test_pb.Test()
     set_obj(e_obj2, data)
 
     bs1 = e_obj1.SerializeToString()
     bs2 = str(e_obj2.SerializeToString())
 
     bs3 = bytearray()
-    encode_data(bs3, Test, data)
+    encode_data(bs3, test_pb.Test, data)
     assert bs2 == bs3
 
     if len(bs1) != len(bs2):
@@ -127,7 +119,7 @@ def test(data):
     obj1 = test_pb2.Test()
     obj1.ParseFromString(bs2)
 
-    obj2 = Test()
+    obj2 = test_pb.Test()
     obj2.ParseFromString(bs1)
 
     eq_obj(data, obj1, obj2)

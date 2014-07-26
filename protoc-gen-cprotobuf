@@ -3,42 +3,28 @@
 import os
 from collections import defaultdict
 from StringIO import StringIO
-from google.protobuf.descriptor import FieldDescriptor
-from google.protobuf.compiler.plugin_pb2 import CodeGeneratorRequest, CodeGeneratorResponse
+from google_pb import CodeGeneratorRequest, CodeGeneratorResponse, FieldDescriptorProto
 from sys import stdin, stdout, stderr
 
-serialized = stdin.read()
-#serialized = open('/tmp/dump', 'rb').read().decode('base64')
-
-#response = CodeGeneratorResponse()
-#f = response.file.add()
-#f.name = 'dump'
-#f.content = serialized.encode('base64')
-#stdout.write(response.SerializeToString())
-#exit(0)
-
-request = CodeGeneratorRequest()
-request.ParseFromString(serialized)
-response = CodeGeneratorResponse()
-
 CPP_TYPES = {
-    FieldDescriptor.TYPE_DOUBLE:    'double',
-    FieldDescriptor.TYPE_FLOAT:     'float',
-    FieldDescriptor.TYPE_INT32:     'int32',
-    FieldDescriptor.TYPE_INT64:     'int64',
-    FieldDescriptor.TYPE_UINT32:    'uint32',
-    FieldDescriptor.TYPE_UINT64:    'uint64',
-    FieldDescriptor.TYPE_FIXED32:   'fixed32',
-    FieldDescriptor.TYPE_FIXED64:   'fixed64',
-    FieldDescriptor.TYPE_SFIXED32:  'sfixed32',
-    FieldDescriptor.TYPE_SFIXED64:  'sfixed64',
-    FieldDescriptor.TYPE_SINT32:    'sint32',
-    FieldDescriptor.TYPE_SINT64:    'sint64',
-    FieldDescriptor.TYPE_BOOL:      'bool',
-    FieldDescriptor.TYPE_STRING:    'string',
-    FieldDescriptor.TYPE_BYTES:     'bytes',
-    FieldDescriptor.TYPE_ENUM:      'enum',
+    FieldDescriptorProto.TYPE_DOUBLE:    'double',
+    FieldDescriptorProto.TYPE_FLOAT:     'float',
+    FieldDescriptorProto.TYPE_INT32:     'int32',
+    FieldDescriptorProto.TYPE_INT64:     'int64',
+    FieldDescriptorProto.TYPE_UINT32:    'uint32',
+    FieldDescriptorProto.TYPE_UINT64:    'uint64',
+    FieldDescriptorProto.TYPE_FIXED32:   'fixed32',
+    FieldDescriptorProto.TYPE_FIXED64:   'fixed64',
+    FieldDescriptorProto.TYPE_SFIXED32:  'sfixed32',
+    FieldDescriptorProto.TYPE_SFIXED64:  'sfixed64',
+    FieldDescriptorProto.TYPE_SINT32:    'sint32',
+    FieldDescriptorProto.TYPE_SINT64:    'sint64',
+    FieldDescriptorProto.TYPE_BOOL:      'bool',
+    FieldDescriptorProto.TYPE_STRING:    'string',
+    FieldDescriptorProto.TYPE_BYTES:     'bytes',
+    FieldDescriptorProto.TYPE_ENUM:      'enum',
 }
+
 
 keywords = ['static', 'class']
 def fieldname(s):
@@ -46,31 +32,54 @@ def fieldname(s):
         s = s+'_'
     return s
 
-def typename(type_name, type):
-    if type == FieldDescriptor.TYPE_MESSAGE:
-        #return type_name
-        parts = type_name.split('.', 2)
-        if len(parts)>2:
-            return parts[2].replace('.', '::')
+def convert_default_value(v):
+    if v=='false':
+        return 'False'
+    elif v=='true':
+        return 'True'
+    else:
+        return v
+
+def real_message_name(type_name):
+    parts = type_name.split('.', 2)
+    if len(parts)>2:
+        return parts[2]
+    else:
+        return '.'.join(parts)
+
+def typename(type_name, type, seen_messages):
+    if type == FieldDescriptorProto.TYPE_MESSAGE:
+        name = real_message_name(type_name)
+        if name in seen_messages:
+            return name
         else:
-            return '.'.join(parts).replace('.', '::')
+            return '\'%s\'' % name
     else:
         return '\'%s\'' % CPP_TYPES[type]
 
-def write_field(fp, desc):
-    ftype = typename(desc.type_name, desc.type)
+def write_field(fp, desc, seen_messages):
+    ftype = typename(desc.type_name, desc.type, seen_messages)
     fname = fieldname(desc.name)
     fnumber = desc.number
     txt = '    %(fname)-15s = Field(%(ftype)s,\t%(fnumber)d'
-    if desc.label == FieldDescriptor.LABEL_REQUIRED:
-        txt += ')'
-    elif desc.label == FieldDescriptor.LABEL_OPTIONAL:
-        txt += ', required=False)'
-    elif desc.label == FieldDescriptor.LABEL_REPEATED:
-        txt += ', repeated=True)'
+    args = []
+    if desc.label == FieldDescriptorProto.LABEL_REQUIRED:
+        pass
+    elif desc.label == FieldDescriptorProto.LABEL_OPTIONAL:
+        args.append('required=False')
+    elif desc.label == FieldDescriptorProto.LABEL_REPEATED:
+        args.append('repeated=True')
+        if desc.options.packed:
+            args.append('packed=True')
+    if desc.default_value:
+        args.append('default=%s' % convert_default_value(desc.default_value))
+    if args:
+        txt += ', '
+        txt += ', '.join(args)
+    txt += ')'
     print >>fp, txt % locals()
 
-def write_message(fp, message_descriptor):
+def write_message(fp, message_descriptor, seen_messages):
     classname = message_descriptor.name
     print >>fp, 'class %(classname)s(ProtoEntity):' % locals()
 
@@ -79,7 +88,7 @@ def write_message(fp, message_descriptor):
 
     if message_descriptor.field:
         for field_descriptor in message_descriptor.field:
-            write_field(fp, field_descriptor)
+            write_field(fp, field_descriptor, seen_messages)
     else:
         print >>fp, '    pass'
 
@@ -90,28 +99,79 @@ def write_enum(fp, descriptor, indent=0):
     for value in descriptor.value:
         print >>fp, '%s%s=%d'%(' '*indent, value.name, value.number)
 
-packages = defaultdict(list)
-
-for desc in request.proto_file:
-    packages[desc.package].append(desc)
-
-for pkg, desces in packages.items():
-    f = response.file.add()
-    f.name = '%s_pb.py' % pkg.replace('.', '_')
-
-    fp = StringIO()
-    print >>fp, '# coding: utf-8'
-    print >>fp, 'from pyprotobuf import ProtoEntity, Field'
+def sort_messages(desces):
+    index_by_name = dict((desc.name, desc) for desc in desces)
+    deps = defaultdict(set)
 
     for desc in desces:
-        print >>fp, '# file: %s.proto'%desc.name
-        for descriptor in desc.enum_type:
-            write_enum(fp, descriptor)
-        for descriptor in desc.message_type:
-            write_message(fp, descriptor)
+        if desc.field:
+            for field_desc in desc.field:
+                if field_desc.type == FieldDescriptorProto.TYPE_MESSAGE:
+                    type_name = real_message_name(field_desc.type_name)
+                    if type_name in index_by_name and type_name != desc.name:
+                        deps[desc.name].add(type_name)
 
-    f.content = fp.getvalue()
-    #print f.content
+    while True:
+        if not index_by_name:
+            break
+        poped = False
+        for name, attr in index_by_name.items():
+            if name not in deps:
+                index_by_name.pop(name)
+                yield attr
+                poped = True
 
-stdout.write(response.SerializeToString())
-exit(0)
+                for k, v in deps.items():
+                    try:
+                        v.remove(name)
+                    except KeyError:
+                        pass
+                    if not v:
+                        del deps[k]
+
+                break
+        else:
+            for name, attr in index_by_name.items():
+                index_by_name.pop(name)
+                yield attr
+
+def main(in_, out):
+    serialized = in_.read()
+
+    request = CodeGeneratorRequest()
+    request.ParseFromString(serialized)
+    response = CodeGeneratorResponse()
+
+    packages = defaultdict(list)
+
+    for desc in request.proto_file:
+        packages[desc.package].append(desc)
+
+    seen_messages = set()
+    for pkg, desces in packages.items():
+        f = response.file.add()
+        f.name = '%s_pb.py' % pkg.replace('.', '_')
+
+        fp = StringIO()
+        print >>fp, '# coding: utf-8'
+        print >>fp, 'from cprotobuf import ProtoEntity, Field'
+
+        for desc in desces:
+            print >>fp, '# file: %s.proto'%desc.name
+            for descriptor in desc.enum_type:
+                write_enum(fp, descriptor)
+            for descriptor in sort_messages(desc.message_type):
+                write_message(fp, descriptor, seen_messages)
+                seen_messages.add(descriptor.name)
+
+        f.content = fp.getvalue()
+
+    out.write(response.SerializeToString())
+
+if __name__ == '__main__':
+    import sys
+    if len(sys.argv) > 1:
+        in_ = sys.argv[1]
+        main(open(in_), stdout)
+    else:
+        main(stdin, stdout)

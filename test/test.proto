@@ -1,3 +1,5 @@
+package test;
+
 enum TestType {
     TYPE1 = -1;
     TYPE2 = 2;
@@ -7,6 +9,20 @@ enum TestType {
 message SubTest {
     optional int32      a = 1;
     optional sint32     b = 2;
+}
+
+message RecursiveFoo {
+    optional RecursiveBar bar = 1;
+    optional int32        n   = 2;
+}
+
+message RecursiveBar {
+    required RecursiveFoo foo = 1;
+}
+
+message SelfRef {
+    optional SelfRef self = 1;
+    optional int32   n    = 2;
 }
 
 message Test {
@@ -29,4 +45,7 @@ message Test {
     repeated int32      q = 17 [packed=true];
     repeated SubTest    r = 18;
     optional TestType   s = 19;
+
+    optional RecursiveFoo foo = 20;
+    optional SelfRef    self = 21;
 }
