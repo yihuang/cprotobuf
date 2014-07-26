@@ -6,6 +6,7 @@ ext_modules = [ Extension("cprotobuf/internal", ["cprotobuf/internal.c"])
               ]
 
 setup(
+    version='0.1',
     name = 'cprotobuf',
     ext_modules = ext_modules,
     scripts = [ 'protoc-gen-cprotobuf' ],
