@@ -3,7 +3,7 @@
 import os
 from collections import defaultdict
 from StringIO import StringIO
-from cprotobuf.plugin_pb import CodeGeneratorRequest, CodeGeneratorResponse, FieldDescriptorProto
+from cprotobuf.plugin_pb import CodeGeneratorRequest, CodeGeneratorResponse, FieldDescriptorProto, FileDescriptorSet
 from sys import stdin, stdout, stderr
 
 CPP_TYPES = {
@@ -135,16 +135,12 @@ def sort_messages(desces):
                 index_by_name.pop(name)
                 yield attr
 
-def main(in_, out):
-    serialized = in_.read()
-
-    request = CodeGeneratorRequest()
-    request.ParseFromString(serialized)
+def main(proto_files):
     response = CodeGeneratorResponse()
 
     packages = defaultdict(list)
 
-    for desc in request.proto_file:
+    for desc in proto_files:
         packages[desc.package].append(desc)
 
     seen_messages = set()
@@ -166,12 +162,18 @@ def main(in_, out):
 
         f.content = fp.getvalue()
 
-    out.write(response.SerializeToString())
+    return response
 
 if __name__ == '__main__':
     import sys
     if len(sys.argv) > 1:
-        in_ = sys.argv[1]
-        main(open(in_, 'rb'), stdout)
+        request = FileDescriptorSet()
+        request.ParseFromString(open(sys.argv[1], 'rb').read())
+        response = main(request.file)
+        for file in response.file:
+            open(file.name, 'w').write(file.content)
     else:
-        main(stdin, stdout)
+        request = CodeGeneratorRequest()
+        request.ParseFromString(stdin.read())
+        response = main(request.proto_file)
+        stdout.write(response.SerializeToString())
