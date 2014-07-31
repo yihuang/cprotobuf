@@ -27,7 +27,6 @@ Benchmark
 Tutorial
 ========
 
-
 Use plugin
 ----------
 
@@ -68,13 +67,13 @@ The generated code is quite readable:
 
     # coding: utf-8
     from cprotobuf import ProtoEntity, Field
-    # file: person.proto.proto
+    # file: person.proto
     class Person(ProtoEntity):
         id              = Field('int32',	1)
         name            = Field('string',	2)
         email           = Field('string',	3, required=False)
 
-    # file: people.proto.proto
+    # file: people.proto
     class People(ProtoEntity):
         people          = Field(Person,	1, repeated=True)
 

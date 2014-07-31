@@ -1,6 +1,6 @@
 # coding: utf-8
 from cprotobuf import ProtoEntity, Field
-# file: descriptor.proto.proto
+# file: descriptor.proto
 class Location(ProtoEntity):
     path            = Field('int32',	1, repeated=True, packed=True)
     span            = Field('int32',	2, repeated=True, packed=True)
@@ -145,7 +145,7 @@ class FileDescriptorProto(ProtoEntity):
 class FileDescriptorSet(ProtoEntity):
     file            = Field(FileDescriptorProto,	1, repeated=True)
 
-# file: plugin.proto.proto
+# file: plugin.proto
 class CodeGeneratorRequest(ProtoEntity):
     file_to_generate = Field('string',	1, repeated=True)
     parameter       = Field('string',	2, required=False)

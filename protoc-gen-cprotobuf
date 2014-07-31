@@ -153,7 +153,7 @@ def main(proto_files):
         print >>fp, 'from cprotobuf import ProtoEntity, Field'
 
         for desc in desces:
-            print >>fp, '# file: %s.proto'%desc.name
+            print >>fp, '# file: %s'%desc.name
             for descriptor in desc.enum_type:
                 write_enum(fp, descriptor)
             for descriptor in sort_messages(desc.message_type):
