@@ -57,9 +57,16 @@ Then you compile it with provided plugin:
 
 .. code-block:: bash
 
-    protoc --cprotobuf_out=. person.proto people.proto
+    $ protoc --cprotobuf_out=. person.proto people.proto
 
-You get a python module ``foo_pb.py`` , cprotobuf generate a python module for each package rather than each protocol file.
+If you have trouble to run a protobuf plugin like on windows, you can directly run ``protoc-gen-cprotobuf`` like this:
+
+.. code-block:: bash
+
+    $ protoc -ofoo.pb person.proto people.proto
+    $ protoc-gen-cprotobuf foo.pb -d .
+
+Then you get a python module ``foo_pb.py`` , cprotobuf generate a python module for each package rather than each protocol file.
 
 The generated code is quite readable:
 
