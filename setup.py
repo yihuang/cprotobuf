@@ -9,16 +9,16 @@ except ImportError:
     have_cython = False
 
 if have_cython:
-    ext_modules = [Extension("cprotobuf/internal", ["cprotobuf/internal.pyx"])
+    ext_modules = [Extension("cprotobuf.internal", ["cprotobuf/internal.pyx"])
                    ]
     cmdclass = {'build_ext': build_ext}
 else:
     cmdclass = {}
-    ext_modules = [Extension("cprotobuf/internal", ["cprotobuf/internal.c"])
+    ext_modules = [Extension("cprotobuf.internal", ["cprotobuf/internal.c"])
                    ]
 
 setup(
-    version='0.1.2',
+    version='0.1.3',
     name='cprotobuf',
     ext_modules=ext_modules,
     scripts=['protoc-gen-cprotobuf'],
