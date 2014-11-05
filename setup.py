@@ -27,5 +27,6 @@ setup(
     author_email='yi.codeplayer@gmail.com',
     url='https://github.com/yihuang/cprotobuf',
     description='pythonic and high performance protocol buffer implementation.',
+    cmdclass=cmdclass,
     long_description=open('README.rst').read(),
 )
