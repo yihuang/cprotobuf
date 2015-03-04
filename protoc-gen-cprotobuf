@@ -50,6 +50,8 @@ def real_message_name(type_name):
 def typename(type_name, type, seen_messages):
     if type == FieldDescriptorProto.TYPE_MESSAGE:
         name = real_message_name(type_name)
+        if name[0] == '.':
+            name = name[1:]
         if name in seen_messages:
             return name
         else:
@@ -72,7 +74,10 @@ def write_field(fp, desc, seen_messages):
         if desc.options.packed:
             args.append('packed=True')
     if desc.default_value:
-        args.append('default=%s' % convert_default_value(desc.default_value))
+        dv = convert_default_value(desc.default_value)
+        if ftype == "'string'":
+            dv = '"{}"'.format(dv)
+        args.append('default=%s' % dv)
     if args:
         txt += ', '
         txt += ', '.join(args)
@@ -146,6 +151,8 @@ def main(proto_files):
     seen_messages = set()
     for pkg, desces in packages.items():
         f = response.file.add()
+        if pkg == '':
+            pkg = 'protos'
         f.name = '%s_pb.py' % pkg.replace('.', '_')
 
         fp = StringIO()
