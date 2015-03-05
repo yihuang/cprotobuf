@@ -38,7 +38,7 @@ def convert_default_value(v):
     elif v=='true':
         return 'True'
     else:
-        return v
+        return repr(v)
 
 def real_message_name(type_name):
     parts = type_name.split('.', 2)
