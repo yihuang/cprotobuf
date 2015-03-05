@@ -5,3 +5,5 @@
 .*
 /build
 /tags
+
+cprotobuf/internal.c
