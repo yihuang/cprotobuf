@@ -146,6 +146,8 @@ def main(proto_files):
     seen_messages = set()
     for pkg, desces in packages.items():
         f = response.file.add()
+        if pkg == '':
+            pkg = 'protos'
         f.name = '%s_pb.py' % pkg.replace('.', '_')
 
         fp = StringIO()
