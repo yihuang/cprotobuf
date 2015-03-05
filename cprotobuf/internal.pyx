@@ -92,7 +92,7 @@ cdef class Field(object):
         if self.packed:
             assert self.repeated, 'packed must be used with repeated'
 
-    cdef instantiate_klass(self):
+    cdef resolve_klass(self):
         if self.klass and isinstance(self.klass, (str, unicode)):
             self.klass = get_proto(self.klass)
 
@@ -103,13 +103,13 @@ cdef class Field(object):
 
         if self.repeated:
             if self.klass:
-                self.instantiate_klass()
+                self.resolve_klass()
                 value = RepeatedContainer(self.klass)
             else:
                 value = []
             setattr(instance, self.name, value)
         elif self.klass:
-            self.instantiate_klass()
+            self.resolve_klass()
             value = self.klass()
             setattr(instance, self.name, value)
         else:
@@ -296,9 +296,8 @@ def encode_data(bytearray buf, cls, dict d):
 
 cdef inline encode_subobject(Field f, bytearray array, value):
     cdef bytearray sub_buf = bytearray()
-    cdef object cls = f.type
-    if isinstance(cls, (str, unicode)):
-        cls = get_proto(cls)
+    f.resolve_klass()
+    cdef object cls = f.klass
     if isinstance(value, dict):
         encode_data(sub_buf, cls, value)
     else:
@@ -340,6 +339,7 @@ cdef inline int decode_object(object self, char **pointer, char *end) except -1:
                 else:
                     if raw_decode_delimited(pointer, end, &sub_buff, &sub_size):
                         raise makeDecodeError(pointer[0], "Can't decode value of sub message at [{0}]")
+                    f.resolve_klass()
                     value = f.klass()
                     decode_object(value, &sub_buff, sub_buff+sub_size)
                 if f.repeated:
