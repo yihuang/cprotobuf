@@ -87,8 +87,8 @@ def write_field(fp, desc, seen_messages):
             args.append('packed=True')
     if desc.default_value:
         dv = convert_default_value(desc.default_value, desc.type)
-        if ftype == "'string'":
-            dv = '"{}"'.format(dv)
+        # if ftype == "'string'":
+        #     dv = '"{}"'.format(dv)
         args.append('default=%s' % dv)
     if args:
         txt += ', '
