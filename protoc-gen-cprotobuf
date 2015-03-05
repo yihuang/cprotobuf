@@ -37,13 +37,17 @@ def fieldname(s):
     return s
 
 
-def convert_default_value(v):
+def convert_default_value(v, t):
     if v == 'false':
         return 'False'
     elif v == 'true':
         return 'True'
-    else:
+    elif t == FieldDescriptorProto.TYPE_STRING:
         return repr(v)
+    elif t == FieldDescriptorProto.TYPE_BYTES:
+        return repr(bytes(v))
+    else:
+        return v
 
 
 def real_message_name(type_name):
@@ -80,7 +84,7 @@ def write_field(fp, desc, seen_messages):
         if desc.options.packed:
             args.append('packed=True')
     if desc.default_value:
-        args.append('default=%s' % convert_default_value(desc.default_value))
+        args.append('default=%s' % convert_default_value(desc.default_value, desc.type))
     if args:
         txt += ', '
         txt += ', '.join(args)
