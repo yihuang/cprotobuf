@@ -340,6 +340,8 @@ cdef inline int decode_object(object self, char **pointer, char *end) except -1:
                     if raw_decode_delimited(pointer, end, &sub_buff, &sub_size):
                         raise makeDecodeError(pointer[0], "Can't decode value of sub message at [{0}]")
                     f.resolve_klass()
+                    if type(f.klass) == str:
+                        f.klass = get_proto(f.klass)
                     value = f.klass()
                     decode_object(value, &sub_buff, sub_buff+sub_size)
                 if f.repeated:

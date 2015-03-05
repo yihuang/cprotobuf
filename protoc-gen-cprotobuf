@@ -61,6 +61,8 @@ def real_message_name(type_name):
 def typename(type_name, type, seen_messages):
     if type == FieldDescriptorProto.TYPE_MESSAGE:
         name = real_message_name(type_name)
+        if name[0] == '.':
+            name = name[1:]
         if name in seen_messages:
             return name
         else:
@@ -84,7 +86,10 @@ def write_field(fp, desc, seen_messages):
         if desc.options.packed:
             args.append('packed=True')
     if desc.default_value:
-        args.append('default=%s' % convert_default_value(desc.default_value, desc.type))
+        dv = convert_default_value(desc.default_value, desc.type)
+        # if ftype == "'string'":
+        #     dv = '"{}"'.format(dv)
+        args.append('default=%s' % dv)
     if args:
         txt += ', '
         txt += ', '.join(args)
