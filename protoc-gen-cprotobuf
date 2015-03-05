@@ -1,10 +1,12 @@
 #!/usr/bin/python
 
-import os, sys, optparse
+import os
+import sys
+import optparse
 from collections import defaultdict
 from StringIO import StringIO
 from cprotobuf.plugin_pb import CodeGeneratorRequest, CodeGeneratorResponse, FieldDescriptorProto, FileDescriptorSet
-from sys import stdin, stdout, stderr
+from sys import stdin, stdout
 
 CPP_TYPES = {
     FieldDescriptorProto.TYPE_DOUBLE:    'double',
@@ -27,25 +29,34 @@ CPP_TYPES = {
 
 
 keywords = ['static', 'class']
+
+
 def fieldname(s):
     if s in keywords:
         s = s+'_'
     return s
 
-def convert_default_value(v):
-    if v=='false':
+
+def convert_default_value(v, t):
+    if v == 'false':
         return 'False'
-    elif v=='true':
+    elif v == 'true':
         return 'True'
+    elif t == FieldDescriptorProto.TYPE_STRING:
+        return repr(v)
+    elif t == FieldDescriptorProto.TYPE_BYTES:
+        return repr(bytes(v))
     else:
         return v
 
+
 def real_message_name(type_name):
     parts = type_name.split('.', 2)
-    if len(parts)>2:
+    if len(parts) > 2:
         return parts[2]
     else:
         return '.'.join(parts)
+
 
 def typename(type_name, type, seen_messages):
     if type == FieldDescriptorProto.TYPE_MESSAGE:
@@ -58,6 +69,7 @@ def typename(type_name, type, seen_messages):
             return '\'%s\'' % name
     else:
         return '\'%s\'' % CPP_TYPES[type]
+
 
 def write_field(fp, desc, seen_messages):
     ftype = typename(desc.type_name, desc.type, seen_messages)
@@ -74,7 +86,7 @@ def write_field(fp, desc, seen_messages):
         if desc.options.packed:
             args.append('packed=True')
     if desc.default_value:
-        dv = convert_default_value(desc.default_value)
+        dv = convert_default_value(desc.default_value, desc.type)
         if ftype == "'string'":
             dv = '"{}"'.format(dv)
         args.append('default=%s' % dv)
@@ -83,6 +95,7 @@ def write_field(fp, desc, seen_messages):
         txt += ', '.join(args)
     txt += ')'
     print >>fp, txt % locals()
+
 
 def write_message(fp, message_descriptor, seen_messages):
     classname = message_descriptor.name
@@ -99,10 +112,12 @@ def write_message(fp, message_descriptor, seen_messages):
 
     print >>fp, ''
 
+
 def write_enum(fp, descriptor, indent=0):
     print >>fp, '%s# enum %s' % (' '*indent, descriptor.name)
     for value in descriptor.value:
-        print >>fp, '%s%s=%d'%(' '*indent, value.name, value.number)
+        print >>fp, '%s%s=%d' % (' '*indent, value.name, value.number)
+
 
 def sort_messages(desces):
     index_by_name = dict((desc.name, desc) for desc in desces)
@@ -119,12 +134,10 @@ def sort_messages(desces):
     while True:
         if not index_by_name:
             break
-        poped = False
         for name, attr in index_by_name.items():
             if name not in deps:
                 index_by_name.pop(name)
                 yield attr
-                poped = True
 
                 for k, v in deps.items():
                     try:
@@ -139,6 +152,7 @@ def sort_messages(desces):
             for name, attr in index_by_name.items():
                 index_by_name.pop(name)
                 yield attr
+
 
 def main(proto_files):
     response = CodeGeneratorResponse()
@@ -160,7 +174,7 @@ def main(proto_files):
         print >>fp, 'from cprotobuf import ProtoEntity, Field'
 
         for desc in desces:
-            print >>fp, '# file: %s'%desc.name
+            print >>fp, '# file: %s' % desc.name
             for descriptor in desc.enum_type:
                 write_enum(fp, descriptor)
             for descriptor in sort_messages(desc.message_type):
@@ -172,11 +186,10 @@ def main(proto_files):
     return response
 
 if __name__ == '__main__':
-    import sys
     if len(sys.argv) > 1:
         parser = optparse.OptionParser()
         parser.add_option("-d", "--output_directory", dest="output_directory",
-                  help="directory to write output modules.", metavar="DIRECTORY", default='.')
+                          help="directory to write output modules.", metavar="DIRECTORY", default='.')
         opt, args = parser.parse_args()
 
         for input_file in args:

@@ -98,7 +98,7 @@ def eq_obj(data, obj1, obj2):
         else:
             assert v1==v2, (f, v1, v2)
 
-def test(data):
+def _test(data):
     e_obj1 = test_pb2.Test()
     set_obj(e_obj1, data)
     e_obj2 = test_pb.Test()
