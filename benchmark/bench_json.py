@@ -3,33 +3,6 @@
 import json
 
 
-sub_test = {
-    'a': None,
-    'b': None,
-}
-
-test = {
-    'a': None,
-    'b': None,
-    'c': None,
-    'd': None,
-    'e': None,
-    'f': None,
-    'g': None,
-    'h': None,
-    'i': None,
-    'j': None,
-    'k': None,
-    'l': None,
-    'm': None,
-    'n': None,
-    'o': sub_test,
-    'p': [],
-    'q': [],
-    'r': [],
-    's': None,
-}
-
 def encode():
     for i in range(500):
         t = {}
