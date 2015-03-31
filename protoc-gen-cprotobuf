@@ -61,6 +61,9 @@ def real_message_name(type_name):
 def typename(type_name, type, seen_messages):
     if type == FieldDescriptorProto.TYPE_MESSAGE:
         name = real_message_name(type_name)
+        # for the case without package specified.
+        if name[0] == '.':
+            name = name[1:]
         if name in seen_messages:
             return name
         else:
