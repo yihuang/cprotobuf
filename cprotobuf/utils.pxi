@@ -3,16 +3,11 @@ from libc.stdint cimport *
 
 # {{{ definitions
 
-cdef extern from "bytearrayobject.h":
-
-    ctypedef class __builtin__.bytearray [object PyByteArrayObject]:
-        cdef Py_ssize_t ob_alloc
-        cdef char *ob_bytes
-        cdef Py_ssize_t ob_size
-
 cdef extern from "Python.h":
     Py_ssize_t PyByteArray_GET_SIZE(object array)
     object PyUnicode_FromStringAndSize(char *buff, Py_ssize_t len)
+    int PyByteArray_Resize(object self, Py_ssize_t size) except -1
+    char* PyByteArray_AS_STRING(object bytearray)
 
 ctypedef object(*Decoder)(char **pointer, char *end)
 ctypedef object(*Encoder)(Field _f, bytearray array, object value)
@@ -30,25 +25,6 @@ class DecodeError(Exception):
         self.message = message
     def __str__(self):
         return self.message.format(self.pointer)
-
-cdef inline int bytearray_reserve(bytearray ba, Py_ssize_t size) except -1:
-    cdef Py_ssize_t alloc = ba.ob_alloc
-    if size <= alloc:
-        return 0
-
-    alloc = size + (size >> 3) + 16
-
-    cdef void *sval = PyMem_Realloc(ba.ob_bytes, alloc)
-    if sval == NULL:
-        raise MemoryError
-    ba.ob_alloc = alloc
-    ba.ob_bytes = <char*>sval
-    return 0
-
-cdef inline int bytearray_resize(bytearray array, Py_ssize_t size) except -1:
-    bytearray_reserve(array, size)
-    array.ob_size = size
-    array.ob_bytes[size] = '\0';
 
 # }}}
 
@@ -284,8 +260,8 @@ cdef object decode_bool(char **pointer, char *end, ):
 cdef inline int raw_encode_uint32(bytearray array, uint32_t n) except -1:
     cdef unsigned short int rem
     cdef Py_ssize_t size = PyByteArray_GET_SIZE(array)
-    bytearray_reserve(array, size + 10)
-    cdef char *buff = array.ob_bytes + size
+    PyByteArray_Resize(array, size + 10)
+    cdef char *buff = PyByteArray_AS_STRING(array) + size
 
     if 0!=n:
         while True:
@@ -303,8 +279,7 @@ cdef inline int raw_encode_uint32(bytearray array, uint32_t n) except -1:
         buff[0] = '\0'
         buff+=1
 
-    cdef Py_ssize_t ss = buff - array.ob_bytes
-    array.ob_size = ss
+    PyByteArray_Resize(array, buff - PyByteArray_AS_STRING(array))
     return 0
 
 cdef inline encode_uint32(Field _f, bytearray array, object value):
@@ -323,8 +298,8 @@ cdef inline encode_sint32(Field _f, bytearray array, object value):
 cdef inline int raw_encode_uint64(bytearray array, uint64_t n) except -1:
     cdef unsigned short int rem
     cdef Py_ssize_t size = PyByteArray_GET_SIZE(array)
-    bytearray_reserve(array, size + 20)
-    cdef char *buff = array.ob_bytes + size
+    PyByteArray_Resize(array, size + 20)
+    cdef char *buff = PyByteArray_AS_STRING(array) + size
 
     if 0!=n:
         while True:
@@ -341,7 +316,7 @@ cdef inline int raw_encode_uint64(bytearray array, uint64_t n) except -1:
     else:
         buff[0] = '\0'
         buff+=1
-    array.ob_size = buff - array.ob_bytes
+    PyByteArray_Resize(array, buff - PyByteArray_AS_STRING(array))
     return 0
 
 cdef inline encode_uint64(Field _f, bytearray array, object value):
@@ -359,8 +334,8 @@ cdef inline encode_sint64(Field _f, bytearray array, object value):
 cdef inline int raw_encode_fixed32(bytearray array, uint32_t n) except -1:
     cdef unsigned short int rem
     cdef Py_ssize_t size = PyByteArray_GET_SIZE(array)
-    bytearray_resize(array, size + 4)
-    cdef char *buff = array.ob_bytes + size
+    PyByteArray_Resize(array, size + 4)
+    cdef char *buff = <char*>array - 4
     cdef int i
 
     for i from 0 <= i < 4:
@@ -378,8 +353,8 @@ cdef inline encode_sfixed32(Field _f, bytearray array, object value):
     cdef int32_t n = value
     cdef unsigned short int rem
     cdef Py_ssize_t size = PyByteArray_GET_SIZE(array)
-    bytearray_resize(array, size + 4)
-    cdef char *buff = array.ob_bytes + size
+    PyByteArray_Resize(array, size + 4)
+    cdef char *buff = PyByteArray_AS_STRING(array) + size
     cdef int i
 
     for i from 0 <= i < 4:
@@ -391,8 +366,8 @@ cdef inline encode_sfixed32(Field _f, bytearray array, object value):
 cdef inline int raw_encode_fixed64(bytearray array, uint64_t n) except -1:
     cdef unsigned short int rem
     cdef Py_ssize_t size = PyByteArray_GET_SIZE(array)
-    bytearray_resize(array, size + 8)
-    cdef char *buff = array.ob_bytes + size
+    PyByteArray_Resize(array, size + 8)
+    cdef char *buff = PyByteArray_AS_STRING(array) + size
     cdef int i
 
     for i from 0 <= i < 8:
@@ -410,8 +385,8 @@ cdef inline encode_sfixed64(Field _f, bytearray array, object value):
     cdef int64_t n = value
     cdef unsigned short int rem
     cdef Py_ssize_t size = PyByteArray_GET_SIZE(array)
-    bytearray_resize(array, size + 8)
-    cdef char *buff = array.ob_bytes + size
+    PyByteArray_Resize(array, size + 8)
+    cdef char *buff = PyByteArray_AS_STRING(array) + size
     cdef int i
 
     for i from 0 <= i < 8:
@@ -435,8 +410,8 @@ cdef inline encode_string(Field _f, bytearray array, object n):
 cdef inline encode_bool(Field _f, bytearray array, object value):
     cdef bint b = value
     cdef Py_ssize_t size = PyByteArray_GET_SIZE(array)
-    bytearray_resize(array, size + 1)
-    cdef char *buff = array.ob_bytes + size
+    PyByteArray_Resize(array, size + 1)
+    cdef char *buff = PyByteArray_AS_STRING(array) + size
     buff[0] = b
 
 cdef inline encode_float(Field _f, bytearray array, object value):
