@@ -53,7 +53,7 @@ cdef class RepeatedContainer(list):
 
 cdef class Field(object):
 
-    cdef public bytes name
+    cdef public str name
     cdef object type
     cdef public int index
     cdef public bint packed
@@ -241,11 +241,10 @@ class ProtoEntity(object):
         return buf
 
     def ParseFromString(self, bytes s):
-        cdef char *buff
+        cdef char *buff = <char*>s
         cdef char *start
         cdef char *end
-        cdef Py_ssize_t size
-        PyString_AsStringAndSize(s, &buff, &size)
+        cdef Py_ssize_t size = len(s)
         start = buff
         end = buff + size
 

@@ -335,7 +335,7 @@ cdef inline int raw_encode_fixed32(bytearray array, uint32_t n) except -1:
     cdef unsigned short int rem
     cdef Py_ssize_t size = PyByteArray_GET_SIZE(array)
     PyByteArray_Resize(array, size + 4)
-    cdef char *buff = <char*>array - 4
+    cdef char *buff = PyByteArray_AS_STRING(array) + size
     cdef int i
 
     for i from 0 <= i < 4:

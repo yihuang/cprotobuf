@@ -1,7 +1,7 @@
 import pyximport; pyximport.install()
-from pyprotobuf import ProtoEntity, Field
+from cprotobuf import ProtoEntity, Field
 
-s = '\x08\x02\x10\x01\x1a\x07summons'
+s = b'\x08\x02\x10\x01\x1a\x07summons'
 
 class TestMessage(ProtoEntity):
     type = Field('int32', 1)
