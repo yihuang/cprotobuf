@@ -170,3 +170,10 @@ If you already have your messages represented as ``list`` and ``dict``, you can 
     >>> msg.ParseFromString(s)
     >>> msg.people[0].name
     'tom'
+
+Run Tests
+=========
+
+.. code-block::
+
+    $ nosetests
