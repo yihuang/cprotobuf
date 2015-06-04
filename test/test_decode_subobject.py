@@ -17,3 +17,4 @@ class ForDecodeMessage(ProtoEntity):
 def test_decode_subobject():
     msg = ForDecodeMessage()
     msg.ParseFromString(s)
+    assert msg.sub.a == 1
