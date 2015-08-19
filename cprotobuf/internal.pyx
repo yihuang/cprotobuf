@@ -255,21 +255,32 @@ class ProtoEntity(object):
             raise DecodeError(e.args[0] - <uint64_t>start, e.args[1])
 
     def __unicode__(self):
-        cdef Field f
-        buf = []
-        d = self.__dict__
-        for f in self._fields:
-            value = d.get(f.name)
-            if value==None:
-                continue
-            if f.repeated:
-                buf.append(u'%s = [%s]' % (f.name, u','.join(map(unicode, value))))
-            else:
-                buf.append(u'%s = %s' % (f.name, unicode(value)))
-        return u'\n'.join(buf)
+        return unicode(self.todict())
 
     def __str__(self):
         return unicode(self).encode('utf-8')
+
+    def todict(self):
+        cdef Field f
+        data = {}
+        d = self.__dict__
+        for f in self._fields:
+            value = d.get(f.name)
+            if value == None:
+                continue
+            if f.repeated:
+                if len(value) < 1:
+                    continue
+                if isinstance(value[0], ProtoEntity):
+                    data[f.name] = [v.todict() for v in value]
+                else:
+                    data[f.name] = value
+            else:
+                if isinstance(value, ProtoEntity):
+                    data[f.name] = value.todict()
+                else:
+                    data[f.name] = value
+        return data
 
 def encode_data(bytearray buf, cls, dict d):
     cdef bytearray buf1
