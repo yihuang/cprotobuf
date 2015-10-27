@@ -246,8 +246,8 @@ class ProtoEntity(object):
         cdef char *end
         cdef Py_ssize_t size = len(s)
 
-        assert offset >= size, "Offset out of bounds."
-        assert count >= 0 and count < size-offset, "Count is too small."
+        assert offset < size, "Offset out of bound."
+        assert count < size-offset, "Count out of bound."
 
         start = buff + offset
         if count < 0:
