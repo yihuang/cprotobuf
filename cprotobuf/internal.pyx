@@ -240,13 +240,20 @@ class ProtoEntity(object):
         encode_data(buf, type(self), self.__dict__)
         return buf
 
-    def ParseFromString(self, bytes s):
+    def ParseFromString(self, s, int offset=0, int count=-1):
         cdef char *buff = <char*>s
         cdef char *start
         cdef char *end
         cdef Py_ssize_t size = len(s)
-        start = buff
-        end = buff + size
+
+        assert offset >= size, "Offset out of bounds."
+        assert count >= 0 and count < size-offset, "Count is too small."
+
+        start = buff + offset
+        if count < 0:
+            end = buff + size
+        else:
+            end = start + count
 
         try:
             decode_object(self, &buff, end)
