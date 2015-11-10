@@ -96,7 +96,7 @@ When design this package, We try to minimise the effort of migration, so we keep
 .. note::
     
     Since this is no need to reuse a message instance and call ``Clear`` on it in python, It don't provide ``Clear`` api,
-    so `ParseFromString` is more like ``MergeFromString`` in official implementation, because it don't call ``Clear`` at first.
+    so ``ParseFromString`` is more like ``MergeFromString`` in official implementation, because it don't call ``Clear`` at first.
 
 encode/decode
 ~~~~~~~~~~~~~
