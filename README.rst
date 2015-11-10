@@ -93,6 +93,11 @@ Now, you have this lovely python module, how to parse and serialize messages?
 
 When design this package, We try to minimise the effort of migration, so we keep the names of api akin to protocol buffer's.
 
+.. note::
+    
+    Since this is no need to reuse a message instance and call ``Clear`` on it in python, It don't provide ``Clear`` api,
+    so `ParseFromString` is more like ``MergeFromString`` in official implementation, because it don't call ``Clear`` at first.
+
 encode/decode
 ~~~~~~~~~~~~~
 
