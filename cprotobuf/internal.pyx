@@ -223,6 +223,7 @@ class MetaProtoEntity(type):
             _fields.append(f)
             _fieldsmap_by_name[name] = f
         newcls = super(MetaProtoEntity, cls).__new__(cls, clsname, bases, attrs)
+        _fields.sort(key=lambda f:f.index)
         newcls._fields = _fields
         newcls._fieldsmap = _fieldsmap
         newcls._fieldsmap_by_name = _fieldsmap_by_name
