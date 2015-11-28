@@ -11,6 +11,13 @@ except ImportError:
     from io import StringIO
 from cprotobuf.plugin_pb import CodeGeneratorRequest, CodeGeneratorResponse, FieldDescriptorProto, FileDescriptorSet
 from sys import stdin, stdout
+try:
+    stdin.buffer
+except AttributeError:
+    pass
+else:
+    stdin = stdin.buffer
+    stdout = stdout.buffer
 
 CPP_TYPES = {
     FieldDescriptorProto.TYPE_DOUBLE:    'double',
@@ -141,7 +148,7 @@ def sort_messages(desces):
                 index_by_name.pop(name)
                 yield attr
 
-                for k, v in deps.items():
+                for k, v in deps.copy().items():
                     try:
                         v.remove(name)
                     except KeyError:
