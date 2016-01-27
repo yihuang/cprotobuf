@@ -6,6 +6,7 @@ from libc.stdint cimport *
 cdef extern from "Python.h":
     Py_ssize_t PyByteArray_GET_SIZE(object array)
     object PyUnicode_FromStringAndSize(char *buff, Py_ssize_t len)
+    object PyByteArray_FromStringAndSize(char *buff, Py_ssize_t len)
     int PyByteArray_Resize(object self, Py_ssize_t size) except -1
     char* PyByteArray_AS_STRING(object bytearray)
 
@@ -213,7 +214,7 @@ cdef object decode_bytes(char **pointer, char *end, ):
     cdef uint64_t size
     cdef int ret = raw_decode_delimited(pointer, end, &result, &size)
     if ret==0:
-        return PyBytes_FromStringAndSize(result, size)
+        return PyByteArray_FromStringAndSize(result, size)
 
     if ret == -1:
         raise makeDecodeError(pointer[0], "Can't decode size for value of type `bytes` at [{0}]")
