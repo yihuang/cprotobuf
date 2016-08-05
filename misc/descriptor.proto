@@ -88,6 +88,11 @@ message FileDescriptorProto {
   optional string syntax = 12;
 }
 
+message ExtensionRange {
+    optional int32 start = 1;
+    optional int32 end = 2;
+}
+
 // Describes a message type.
 message DescriptorProto {
   optional string name = 1;
@@ -98,10 +103,6 @@ message DescriptorProto {
   repeated DescriptorProto nested_type = 3;
   repeated EnumDescriptorProto enum_type = 4;
 
-  message ExtensionRange {
-    optional int32 start = 1;
-    optional int32 end = 2;
-  }
   repeated ExtensionRange extension_range = 5;
 
   repeated OneofDescriptorProto oneof_decl = 8;

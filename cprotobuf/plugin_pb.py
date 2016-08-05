@@ -41,6 +41,10 @@ class MessageOptions(ProtoEntity):
     map_entry       = Field('bool',	7, required=False)
     uninterpreted_option = Field(UninterpretedOption,	999, repeated=True)
 
+class ExtensionRange(ProtoEntity):
+    start           = Field('int32',	1, required=False)
+    end             = Field('int32',	2, required=False)
+
 class EnumValueDescriptorProto(ProtoEntity):
     name            = Field('string',	1, required=False)
     number          = Field('int32',	2, required=False)
@@ -126,7 +130,7 @@ class DescriptorProto(ProtoEntity):
     extension       = Field(FieldDescriptorProto,	6, repeated=True)
     nested_type     = Field('DescriptorProto',	3, repeated=True)
     enum_type       = Field(EnumDescriptorProto,	4, repeated=True)
-    extension_range = Field('DescriptorProto.ExtensionRange',	5, repeated=True)
+    extension_range = Field(ExtensionRange,	5, repeated=True)
     oneof_decl      = Field(OneofDescriptorProto,	8, repeated=True)
     options         = Field(MessageOptions,	7, required=False)
     reserved_range  = Field('DescriptorProto.ReservedRange',	9, repeated=True)
@@ -175,7 +179,12 @@ class CodeGeneratorRequest(ProtoEntity):
     parameter       = Field('string',	2, required=False)
     proto_file      = Field(FileDescriptorProto,	15, repeated=True)
 
+class CodeGeneratorResponse_File(ProtoEntity):
+    name            = Field('string',	1, required=False)
+    insertion_point = Field('string',	2, required=False)
+    content         = Field('string',	15, required=False)
+
 class CodeGeneratorResponse(ProtoEntity):
     error           = Field('string',	1, required=False)
-    file            = Field('CodeGeneratorResponse.File',	15, repeated=True)
+    file            = Field(CodeGeneratorResponse_File,	15, repeated=True)
 
