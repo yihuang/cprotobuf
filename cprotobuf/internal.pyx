@@ -263,10 +263,10 @@ class ProtoEntity(object):
             raise DecodeError(e.args[0] - <uint64_t>start, e.args[1])
 
     def __unicode__(self):
-        return unicode(self.todict())
+        return str(self).decode('utf-8')
 
     def __str__(self):
-        return unicode(self).encode('utf-8')
+        return str(self.todict())
 
     def todict(self):
         cdef Field f
