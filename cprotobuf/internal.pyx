@@ -237,9 +237,7 @@ class ProtoEntity(object):
         self.__dict__.update(kwargs)
 
     def SerializeToString(self):
-        cdef bytearray buf = bytearray()
-        encode_data(buf, type(self), self.__dict__)
-        return buf
+        return encode_data(type(self), self.__dict__)
 
     def ParseFromString(self, s, int offset=0, int count=-1):
         cdef char *buff = <char*>s
@@ -290,7 +288,8 @@ class ProtoEntity(object):
                     data[f.name] = value
         return data
 
-def encode_data(bytearray buf, cls, dict d):
+def encode_data(cls, dict d):
+    cdef bytearray buf = bytearray()
     cdef bytearray buf1
     cdef Field f
     for f in <list>cls._fields:
@@ -311,15 +310,16 @@ def encode_data(bytearray buf, cls, dict d):
             else:
                 encode_type(buf, f.wire_type, f.index)
                 f.encoder(f, buf, value)
+    return buf
 
 cdef inline encode_subobject(Field f, bytearray array, value):
-    cdef bytearray sub_buf = bytearray()
+    cdef object sub_buf
     f.resolve_klass()
     cdef object cls = f.klass
     if isinstance(value, dict):
-        encode_data(sub_buf, cls, value)
+        sub_buf = encode_data(cls, value)
     else:
-        encode_data(sub_buf, cls, value.__dict__)
+        sub_buf = encode_data(cls, value.__dict__)
     encode_bytes(f, array, sub_buf)
 
 cdef inline int decode_object(object self, char **pointer, char *end) except -1:
