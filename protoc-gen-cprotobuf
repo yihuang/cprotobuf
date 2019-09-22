@@ -62,7 +62,7 @@ def convert_default_value(v, t):
 
 
 def real_message_name(type_name):
-    parts = type_name.split('.', 2)
+    parts = type_name.rsplit('.', 2)
     if len(parts) > 2:
         return parts[2]
     else:
