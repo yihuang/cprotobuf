@@ -1,54 +1,29 @@
 # coding: utf-8
 from cprotobuf import ProtoEntity, Field
 # file: descriptor.proto
-class SourceCodeInfo(ProtoEntity):
-    location        = Field('SourceCodeInfo.Location',	1, repeated=True)
+class ExtensionRange(ProtoEntity):
+    start           = Field('int32',	1, required=False)
+    end             = Field('int32',	2, required=False)
+
+class ReservedRange(ProtoEntity):
+    start           = Field('int32',	1, required=False)
+    end             = Field('int32',	2, required=False)
+
+class OneofDescriptorProto(ProtoEntity):
+    name            = Field('string',	1, required=False)
+
+class NamePart(ProtoEntity):
+    name_part       = Field('string',	1)
+    is_extension    = Field('bool',	2)
 
 class UninterpretedOption(ProtoEntity):
-    name            = Field('UninterpretedOption.NamePart',	2, repeated=True)
+    name            = Field(NamePart,	2, repeated=True)
     identifier_value = Field('string',	3, required=False)
     positive_int_value = Field('uint64',	4, required=False)
     negative_int_value = Field('int64',	5, required=False)
     double_value    = Field('double',	6, required=False)
     string_value    = Field('bytes',	7, required=False)
     aggregate_value = Field('string',	8, required=False)
-
-class EnumValueOptions(ProtoEntity):
-    deprecated      = Field('bool',	1, required=False, default=False)
-    uninterpreted_option = Field(UninterpretedOption,	999, repeated=True)
-
-class FieldOptions(ProtoEntity):
-    # enum CType
-    STRING=0
-    CORD=1
-    STRING_PIECE=2
-    # enum JSType
-    JS_NORMAL=0
-    JS_STRING=1
-    JS_NUMBER=2
-    ctype           = Field('enum',	1, required=False, default=STRING)
-    packed          = Field('bool',	2, required=False)
-    jstype          = Field('enum',	6, required=False, default=JS_NORMAL)
-    lazy            = Field('bool',	5, required=False, default=False)
-    deprecated      = Field('bool',	3, required=False, default=False)
-    weak            = Field('bool',	10, required=False, default=False)
-    uninterpreted_option = Field(UninterpretedOption,	999, repeated=True)
-
-class MessageOptions(ProtoEntity):
-    message_set_wire_format = Field('bool',	1, required=False, default=False)
-    no_standard_descriptor_accessor = Field('bool',	2, required=False, default=False)
-    deprecated      = Field('bool',	3, required=False, default=False)
-    map_entry       = Field('bool',	7, required=False)
-    uninterpreted_option = Field(UninterpretedOption,	999, repeated=True)
-
-class ExtensionRange(ProtoEntity):
-    start           = Field('int32',	1, required=False)
-    end             = Field('int32',	2, required=False)
-
-class EnumValueDescriptorProto(ProtoEntity):
-    name            = Field('string',	1, required=False)
-    number          = Field('int32',	2, required=False)
-    options         = Field(EnumValueOptions,	3, required=False)
 
 class FileOptions(ProtoEntity):
     # enum OptimizeMode
@@ -72,12 +47,29 @@ class FileOptions(ProtoEntity):
     javanano_use_deprecated_package = Field('bool',	38, required=False)
     uninterpreted_option = Field(UninterpretedOption,	999, repeated=True)
 
-class ServiceOptions(ProtoEntity):
-    deprecated      = Field('bool',	33, required=False, default=False)
+class MessageOptions(ProtoEntity):
+    message_set_wire_format = Field('bool',	1, required=False, default=False)
+    no_standard_descriptor_accessor = Field('bool',	2, required=False, default=False)
+    deprecated      = Field('bool',	3, required=False, default=False)
+    map_entry       = Field('bool',	7, required=False)
     uninterpreted_option = Field(UninterpretedOption,	999, repeated=True)
 
-class OneofDescriptorProto(ProtoEntity):
-    name            = Field('string',	1, required=False)
+class FieldOptions(ProtoEntity):
+    # enum CType
+    STRING=0
+    CORD=1
+    STRING_PIECE=2
+    # enum JSType
+    JS_NORMAL=0
+    JS_STRING=1
+    JS_NUMBER=2
+    ctype           = Field('enum',	1, required=False, default=STRING)
+    packed          = Field('bool',	2, required=False)
+    jstype          = Field('enum',	6, required=False, default=JS_NORMAL)
+    lazy            = Field('bool',	5, required=False, default=False)
+    deprecated      = Field('bool',	3, required=False, default=False)
+    weak            = Field('bool',	10, required=False, default=False)
+    uninterpreted_option = Field(UninterpretedOption,	999, repeated=True)
 
 class FieldDescriptorProto(ProtoEntity):
     # enum Type
@@ -119,6 +111,15 @@ class EnumOptions(ProtoEntity):
     deprecated      = Field('bool',	3, required=False, default=False)
     uninterpreted_option = Field(UninterpretedOption,	999, repeated=True)
 
+class EnumValueOptions(ProtoEntity):
+    deprecated      = Field('bool',	1, required=False, default=False)
+    uninterpreted_option = Field(UninterpretedOption,	999, repeated=True)
+
+class EnumValueDescriptorProto(ProtoEntity):
+    name            = Field('string',	1, required=False)
+    number          = Field('int32',	2, required=False)
+    options         = Field(EnumValueOptions,	3, required=False)
+
 class EnumDescriptorProto(ProtoEntity):
     name            = Field('string',	1, required=False)
     value           = Field(EnumValueDescriptorProto,	2, repeated=True)
@@ -133,11 +134,12 @@ class DescriptorProto(ProtoEntity):
     extension_range = Field(ExtensionRange,	5, repeated=True)
     oneof_decl      = Field(OneofDescriptorProto,	8, repeated=True)
     options         = Field(MessageOptions,	7, required=False)
-    reserved_range  = Field('DescriptorProto.ReservedRange',	9, repeated=True)
+    reserved_range  = Field(ReservedRange,	9, repeated=True)
     reserved_name   = Field('string',	10, repeated=True)
 
-class GeneratedCodeInfo(ProtoEntity):
-    annotation      = Field('GeneratedCodeInfo.Annotation',	1, repeated=True)
+class ServiceOptions(ProtoEntity):
+    deprecated      = Field('bool',	33, required=False, default=False)
+    uninterpreted_option = Field(UninterpretedOption,	999, repeated=True)
 
 class MethodOptions(ProtoEntity):
     deprecated      = Field('bool',	33, required=False, default=False)
@@ -156,6 +158,16 @@ class ServiceDescriptorProto(ProtoEntity):
     method          = Field(MethodDescriptorProto,	2, repeated=True)
     options         = Field(ServiceOptions,	3, required=False)
 
+class Location(ProtoEntity):
+    path            = Field('int32',	1, repeated=True, packed=True)
+    span            = Field('int32',	2, repeated=True, packed=True)
+    leading_comments = Field('string',	3, required=False)
+    trailing_comments = Field('string',	4, required=False)
+    leading_detached_comments = Field('string',	6, repeated=True)
+
+class SourceCodeInfo(ProtoEntity):
+    location        = Field(Location,	1, repeated=True)
+
 class FileDescriptorProto(ProtoEntity):
     name            = Field('string',	1, required=False)
     package         = Field('string',	2, required=False)
@@ -172,6 +184,15 @@ class FileDescriptorProto(ProtoEntity):
 
 class FileDescriptorSet(ProtoEntity):
     file            = Field(FileDescriptorProto,	1, repeated=True)
+
+class Annotation(ProtoEntity):
+    path            = Field('int32',	1, repeated=True, packed=True)
+    source_file     = Field('string',	2, required=False)
+    begin           = Field('int32',	3, required=False)
+    end             = Field('int32',	4, required=False)
+
+class GeneratedCodeInfo(ProtoEntity):
+    annotation      = Field(Annotation,	1, repeated=True)
 
 # file: plugin.proto
 class CodeGeneratorRequest(ProtoEntity):
