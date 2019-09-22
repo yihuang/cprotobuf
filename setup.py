@@ -18,7 +18,7 @@ else:
                    ]
 
 setup(
-    version='0.1.9',
+    version='0.1.10',
     name='cprotobuf',
     ext_modules=ext_modules,
     scripts=['protoc-gen-cprotobuf'],
