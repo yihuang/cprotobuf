@@ -6,3 +6,4 @@
 /build
 /tags
 *.c
+/dist
