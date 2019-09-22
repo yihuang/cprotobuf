@@ -45,13 +45,24 @@
 // flag "--${NAME}_out" is passed to protoc.
 
 syntax = "proto2";
-package plugin;
 
-//option java_package = "com.google.protobuf.compiler";
-//option java_outer_classname = "PluginProtos";
-//option go_package = "plugin_go";
+package plugin;
+option java_package = "com.google.protobuf.compiler";
+option java_outer_classname = "PluginProtos";
+
+option go_package = "github.com/golang/protobuf/protoc-gen-go/plugin;plugin_go";
 
 import "descriptor.proto";
+
+// The version number of protocol compiler.
+message Version {
+  optional int32 major = 1;
+  optional int32 minor = 2;
+  optional int32 patch = 3;
+  // A suffix for alpha, beta or rc release, e.g., "alpha-1", "rc2". It should
+  // be empty for mainline stable releases.
+  optional string suffix = 4;
+}
 
 // An encoded CodeGeneratorRequest is written to the plugin's stdin.
 message CodeGeneratorRequest {
@@ -74,11 +85,16 @@ message CodeGeneratorRequest {
   // the entire set into memory at once.  However, as of this writing, this
   // is not similarly optimized on protoc's end -- it will store all fields in
   // memory at once before sending them to the plugin.
+  //
+  // Type names of fields and extensions in the FileDescriptorProto are always
+  // fully qualified.
   repeated FileDescriptorProto proto_file = 15;
-}
 
-// Represents a single generated file.
-message CodeGeneratorResponse_File {
+  // The version number of protocol compiler.
+  optional Version compiler_version = 3;
+
+}
+message File {
     // The file name, relative to the output directory.  The name must not
     // contain "." or ".." components and must be relative, not be absolute (so,
     // the file cannot lie outside the output directory).  "/" must be used as
@@ -147,5 +163,6 @@ message CodeGeneratorResponse {
   // exiting with a non-zero status code.
   optional string error = 1;
 
-  repeated CodeGeneratorResponse_File file = 15;
+  // Represents a single generated file.
+  repeated File file = 15;
 }
