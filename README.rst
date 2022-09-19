@@ -176,6 +176,17 @@ If you already have your messages represented as ``list`` and ``dict``, you can 
     >>> msg.people[0].name
     'tom'
 
+Utility APIs
+------------
+
+.. code-block:: python
+
+    >>> from cprotobuf import encode_primitive, decode_primitive
+    >>> encode_primitive('uint64', 10)
+    bytearray(b'\x01')
+    >>> decode_primitive(b'\n', 'uint64')
+    (10, 1)
+
 Run Tests
 =========
 

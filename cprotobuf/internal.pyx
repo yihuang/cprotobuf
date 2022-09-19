@@ -125,74 +125,13 @@ cdef class Field(object):
             return 2
 
     cdef Encoder get_encoder(self):
-        if self.type == 'int32':
-            return encode_int64     # compatible with official protobuf
-        if self.type == 'int64':
-            return encode_int64
-        if self.type == 'sint32':
-            return encode_sint32
-        if self.type == 'sint64':
-            return encode_sint64
-        if self.type == 'uint32':
-            return encode_uint32
-        if self.type == 'uint64':
-            return encode_uint64
-        if self.type == 'bool':
-            return encode_bool
-        if self.type == 'enum':
-            return encode_int64     # compatible with official protobuf
-        if self.type == 'fixed64':
-            return encode_fixed64
-        if self.type == 'sfixed64':
-            return encode_sfixed64
-        if self.type == 'fixed32':
-            return encode_fixed32
-        if self.type == 'sfixed32':
-            return encode_sfixed32
-        if self.type == 'string':
-            return encode_string
-        if self.type == 'bytes':
-            return encode_bytes
-        if self.type == 'float':
-            return encode_float
-        if self.type == 'double':
-            return encode_double
-        return encode_subobject
+        cdef Encoder e = get_encoder(self.type)
+        if e == NULL:
+            return encode_subobject
+        return e
 
     cdef Decoder get_decoder(self):
-        if self.type == 'int32':
-            return decode_int64     # compatible with official protobuf
-        if self.type == 'int64':
-            return decode_int64
-        if self.type == 'sint32':
-            return decode_sint32
-        if self.type == 'sint64':
-            return decode_sint64
-        if self.type == 'uint32':
-            return decode_uint32
-        if self.type == 'uint64':
-            return decode_uint64
-        if self.type == 'bool':
-            return decode_bool
-        if self.type == 'enum':
-            return decode_int64     # compatible with official protobuf
-        if self.type == 'fixed32':
-            return decode_fixed32
-        if self.type == 'fixed64':
-            return decode_fixed64
-        if self.type == 'sfixed32':
-            return decode_sfixed32
-        if self.type == 'sfixed64':
-            return decode_sfixed64
-        if self.type == 'string':
-            return decode_string
-        if self.type == 'bytes':
-            return decode_bytes
-        if self.type == 'float':
-            return decode_float
-        if self.type == 'double':
-            return decode_double
-        return NULL
+        return get_decoder(self.type)
 
 cdef dict _proto_classes = {}
 cpdef get_proto(name):
@@ -367,3 +306,20 @@ cdef inline int decode_object(object self, char **pointer, char *end) except -1:
                     d[f.name] = value
 
     return 0
+
+
+def encode_primitive(tp, v):
+    cdef bytearray buf = bytearray()
+    cdef Encoder encoder = get_encoder(tp)
+    encoder(None, buf, v)
+    return buf
+
+
+def decode_primitive(s, tp):
+    cdef char *buf = <char*>s
+    cdef char *end = buf + len(s)
+    cdef char *cur = buf
+    cdef Field f
+    cdef Decoder d = get_decoder(tp)
+    v = d(&cur, end)
+    return v, cur - buf

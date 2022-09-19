@@ -426,3 +426,74 @@ cdef inline encode_type(bytearray array, unsigned char wire_type, uint32_t index
     raw_encode_uint32(array, index<<3|wire_type)
 
 # }}}
+
+cdef Encoder get_encoder(type):
+    if type == 'int32':
+        return encode_int64     # compatible with official protobuf
+    if type == 'int64':
+        return encode_int64
+    if type == 'sint32':
+        return encode_sint32
+    if type == 'sint64':
+        return encode_sint64
+    if type == 'uint32':
+        return encode_uint32
+    if type == 'uint64':
+        return encode_uint64
+    if type == 'bool':
+        return encode_bool
+    if type == 'enum':
+        return encode_int64     # compatible with official protobuf
+    if type == 'fixed64':
+        return encode_fixed64
+    if type == 'sfixed64':
+        return encode_sfixed64
+    if type == 'fixed32':
+        return encode_fixed32
+    if type == 'sfixed32':
+        return encode_sfixed32
+    if type == 'string':
+        return encode_string
+    if type == 'bytes':
+        return encode_bytes
+    if type == 'float':
+        return encode_float
+    if type == 'double':
+        return encode_double
+    return NULL
+
+
+cdef Decoder get_decoder(type):
+    if type == 'int32':
+        return decode_int64     # compatible with official protobuf
+    if type == 'int64':
+        return decode_int64
+    if type == 'sint32':
+        return decode_sint32
+    if type == 'sint64':
+        return decode_sint64
+    if type == 'uint32':
+        return decode_uint32
+    if type == 'uint64':
+        return decode_uint64
+    if type == 'bool':
+        return decode_bool
+    if type == 'enum':
+        return decode_int64     # compatible with official protobuf
+    if type == 'fixed32':
+        return decode_fixed32
+    if type == 'fixed64':
+        return decode_fixed64
+    if type == 'sfixed32':
+        return decode_sfixed32
+    if type == 'sfixed64':
+        return decode_sfixed64
+    if type == 'string':
+        return decode_string
+    if type == 'bytes':
+        return decode_bytes
+    if type == 'float':
+        return decode_float
+    if type == 'double':
+        return decode_double
+    return NULL
