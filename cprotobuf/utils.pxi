@@ -276,7 +276,7 @@ cdef inline int raw_encode_uint32(bytearray array, uint32_t n) except -1:
                 buff[0] = <char> rem
                 buff+=1
     else:
-        buff[0] = '\0'
+        buff[0] = b'\0'
         buff+=1
 
     PyByteArray_Resize(array, buff - PyByteArray_AS_STRING(array))
@@ -314,7 +314,7 @@ cdef inline int raw_encode_uint64(bytearray array, uint64_t n) except -1:
                 buff[0] = <char> rem
                 buff+=1
     else:
-        buff[0] = '\0'
+        buff[0] = b'\0'
         buff+=1
     PyByteArray_Resize(array, buff - PyByteArray_AS_STRING(array))
     return 0

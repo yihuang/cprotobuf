@@ -1,3 +1,4 @@
+#cython: language_level=3
 include "utils.pxi"
 import inspect
 #import traceback
@@ -33,8 +34,8 @@ default_objects = {
     'fixed64': 0,
     'sfixed64': 0,
     'double': 0.0,
-    'string': u'',
-    'bytes': '',
+    'string': '',
+    'bytes': b'',
     'fixed32': 0,
     'sfixed32': 0,
     'float': 0.0,
