@@ -1,5 +1,6 @@
 #cython: language_level=3
 include "utils.pxi"
+from cpython.buffer cimport PyObject_GetBuffer, PyBuffer_Release, PyBUF_ANY_CONTIGUOUS, PyBUF_SIMPLE
 import inspect
 #import traceback
 
@@ -178,25 +179,32 @@ class ProtoEntity(object, metaclass=MetaProtoEntity):
         return encode_data(type(self), self.__dict__)
 
     def ParseFromString(self, s, int offset=0, int count=-1):
-        cdef char *buff = <char*>s
+        cdef char *buff
         cdef char *start
         cdef char *end
-        cdef Py_ssize_t size = len(s)
-
-        assert (size == 0 and offset == 0 and count <= 0) or offset < size, "Offset out of bound."
-        assert offset + count < size, "Count out of bound."
-
-        start = buff + offset
-        if count < 0:
-            end = buff + size
-        else:
-            end = start + count
-
+        cdef Py_ssize_t size
+        cdef Py_buffer buffer
+        PyObject_GetBuffer(s, &buffer, PyBUF_SIMPLE | PyBUF_ANY_CONTIGUOUS)
         try:
-            decode_object(self, &buff, end)
-        except InternalDecodeError as e:
-            #traceback.print_exc()
-            raise DecodeError(e.args[0] - <uint64_t>start, e.args[1])
+            buff = <char *>buffer.buf
+            size = buffer.len
+
+            assert (size == 0 and offset == 0 and count <= 0) or offset < size, "Offset out of bound."
+            assert offset + count < size, "Count out of bound."
+
+            start = buff + offset
+            if count < 0:
+                end = buff + size
+            else:
+                end = start + count
+
+            try:
+                decode_object(self, &buff, end)
+            except InternalDecodeError as e:
+                #traceback.print_exc()
+                raise DecodeError(e.args[0] - <uint64_t>start, e.args[1])
+        finally:
+            PyBuffer_Release(&buffer)
 
     def __unicode__(self):
         return str(self).decode('utf-8')
@@ -315,10 +323,19 @@ def encode_primitive(tp, v):
 
 
 def decode_primitive(s, tp):
-    cdef char *buf = <char*>s
-    cdef char *end = buf + len(s)
-    cdef char *cur = buf
+    cdef char* buf 
+    cdef char *end 
+    cdef char *cur 
     cdef Field f
-    cdef Decoder d = get_decoder(tp)
-    v = d(&cur, end)
-    return v, cur - buf
+    cdef Decoder d
+    cdef Py_buffer buffer
+    PyObject_GetBuffer(s, &buffer, PyBUF_SIMPLE | PyBUF_ANY_CONTIGUOUS)
+    try:
+        buf = <char *>buffer.buf
+        end = buf + buffer.len
+        cur = buf
+        d = get_decoder(tp)
+        v = d(&cur, end)
+        return v, cur - buf
+    finally:
+        PyBuffer_Release(&buffer)
