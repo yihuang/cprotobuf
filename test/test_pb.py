@@ -1,6 +1,6 @@
 # coding: utf-8
 from cprotobuf import ProtoEntity, Field
-# file: test.proto.proto
+# file: test.proto
 # enum TestType
 TYPE1=-1
 TYPE2=2
@@ -16,6 +16,9 @@ class SelfRef(ProtoEntity):
 class RecursiveFoo(ProtoEntity):
     bar             = Field('RecursiveBar',	1, required=False)
     n               = Field('int32',	2, required=False)
+
+class RecursiveBar(ProtoEntity):
+    foo             = Field(RecursiveFoo,	1)
 
 class Test(ProtoEntity):
     a               = Field('int32',	1, required=False)
@@ -39,7 +42,4 @@ class Test(ProtoEntity):
     s               = Field('enum',	19, required=False)
     foo             = Field(RecursiveFoo,	20, required=False)
     self            = Field(SelfRef,	21, required=False)
-
-class RecursiveBar(ProtoEntity):
-    foo             = Field(RecursiveFoo,	1)
 
