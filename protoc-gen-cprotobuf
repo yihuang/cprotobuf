@@ -143,7 +143,7 @@ def sort_messages(desces):
     while True:
         if not index_by_name:
             break
-        for name, attr in index_by_name.items():
+        for name, attr in index_by_name.copy().items():
             if name not in deps:
                 index_by_name.pop(name)
                 yield attr
@@ -158,7 +158,7 @@ def sort_messages(desces):
 
                 break
         else:
-            for name, attr in index_by_name.items():
+            for name, attr in index_by_name.copy().items():
                 index_by_name.pop(name)
                 yield attr
 
