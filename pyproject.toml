@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "cprotobuf"
+version = "0.1.11"
+description = "Cython bindings for cprotobuf"
+authors = ["huangyi <yi.codeplayer@gmail.com>"]
+
+[tool.poetry.build]
+script = "setup.py"
+generate-setup-file = true
+
+[tool.poetry.dependencies]
+cython = "^3.0.12"
+
+[build-system]
+requires = ["poetry-core", "cython", "setuptools"]
+build-backend = "poetry.core.masonry.api"
