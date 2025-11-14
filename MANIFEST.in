@@ -1,2 +1,3 @@
 include README.rst
-include cprotobuf/utils.pxi
+include cprotobuf/*.pxi
+include cprotobuf/*.pyx

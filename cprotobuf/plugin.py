@@ -163,7 +163,7 @@ def sort_messages(desces):
                 yield attr
 
 
-def main(proto_files):
+def gen(proto_files):
     response = CodeGeneratorResponse()
 
     packages = defaultdict(list)
@@ -194,7 +194,8 @@ def main(proto_files):
 
     return response
 
-if __name__ == '__main__':
+
+def main():
     if len(sys.argv) > 1:
         parser = optparse.OptionParser()
         parser.add_option("-d", "--output_directory", dest="output_directory",
@@ -204,11 +205,14 @@ if __name__ == '__main__':
         for input_file in args:
             request = FileDescriptorSet()
             request.ParseFromString(open(input_file, 'rb').read())
-            response = main(request.file)
+            response = gen(request.file)
             for file in response.file:
                 open(os.path.join(opt.output_directory, file.name), 'w').write(file.content)
     else:
         request = CodeGeneratorRequest()
         request.ParseFromString(stdin.read())
-        response = main(request.proto_file)
+        response = gen(request.proto_file)
         stdout.write(response.SerializeToString())
+
+if __name__ == '__main__':
+    main()

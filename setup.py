@@ -1,30 +1,8 @@
-#!/usr/bin/env python
-from setuptools import setup, Extension
-
-try:
-    from Cython.Distutils import build_ext
-
-    have_cython = True
-except ImportError:
-    have_cython = False
-
-if have_cython:
-    ext_modules = [Extension("cprotobuf.internal", ["cprotobuf/internal.pyx"])]
-    cmdclass = {"build_ext": build_ext}
-else:
-    cmdclass = {}
-    ext_modules = [Extension("cprotobuf.internal", ["cprotobuf/internal.c"])]
+from setuptools import setup
+from Cython.Build import cythonize
 
 setup(
-    version="0.1.11",
+    packages = ["cprotobuf"],
     name="cprotobuf",
-    ext_modules=ext_modules,
-    scripts=["protoc-gen-cprotobuf"],
-    packages=["cprotobuf"],
-    author="huangyi",
-    author_email="yi.codeplayer@gmail.com",
-    url="https://github.com/yihuang/cprotobuf",
-    description="pythonic and high performance protocol buffer implementation.",
-    cmdclass=cmdclass,
-    long_description=open("README.rst").read(),
+    ext_modules=cythonize("cprotobuf/internal.pyx"),
 )
