@@ -1,5 +1,5 @@
 [project]
-version="0.1.11"
+version="0.1.12"
 name="cprotobuf"
 description="pythonic and high performance protocol buffer implementation."
 requires-python = ">=3.7"
