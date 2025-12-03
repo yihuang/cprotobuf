@@ -1,30 +1,27 @@
 #!/usr/bin/env python
-from setuptools import setup, Extension
+"""Setup script for cprotobuf with PyDust support.
 
-try:
-    from Cython.Distutils import build_ext
+This setup.py is maintained for backward compatibility.
+For modern builds, use pyproject.toml with PyDust.
+"""
 
-    have_cython = True
-except ImportError:
-    have_cython = False
+from setuptools import setup
 
-if have_cython:
-    ext_modules = [Extension("cprotobuf.internal", ["cprotobuf/internal.pyx"])]
-    cmdclass = {"build_ext": build_ext}
-else:
-    cmdclass = {}
-    ext_modules = [Extension("cprotobuf.internal", ["cprotobuf/internal.c"])]
+# Read version from pyproject.toml
+import tomllib
+with open("pyproject.toml", "rb") as f:
+    pyproject = tomllib.load(f)
+    version = pyproject["project"]["version"]
 
 setup(
-    version="0.1.11",
+    version=version,
     name="cprotobuf",
-    ext_modules=ext_modules,
     scripts=["protoc-gen-cprotobuf"],
     packages=["cprotobuf"],
     author="huangyi",
     author_email="yi.codeplayer@gmail.com",
     url="https://github.com/yihuang/cprotobuf",
     description="pythonic and high performance protocol buffer implementation.",
-    cmdclass=cmdclass,
     long_description=open("README.rst").read(),
+    python_requires=">=3.7",
 )

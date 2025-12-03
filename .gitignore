@@ -7,3 +7,31 @@
 /tags
 *.c
 /dist
+
+# Zig compilation outputs
+*.a
+*.a.o
+*.o
+*.obj
+*.exe
+*.lib
+*.dll
+*.pdb
+*.ilk
+zig-cache/
+zig-out/
+
+# Python virtual environment
+venv/
+.env/
+.venv/
+env/
+
+# PyDust build outputs
+cprotobuf/_native*.so
+cprotobuf/_native*.pyd
+__pycache__/
+*.egg-info/
+
+# Test temporary files
+test_build.py

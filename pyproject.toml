@@ -1,16 +1,53 @@
-[tool.poetry]
-name = "cprotobuf"
-version = "0.1.11"
-description = "Cython bindings for cprotobuf"
-authors = ["huangyi <yi.codeplayer@gmail.com>"]
-
-[tool.poetry.build]
-script = "setup.py"
-generate-setup-file = true
-
-[tool.poetry.dependencies]
-cython = "^3.0.12"
-
 [build-system]
-requires = ["poetry-core", "cython", "setuptools"]
-build-backend = "poetry.core.masonry.api"
+requires = ["pydust"]
+build-backend = "pydust"
+
+[project]
+name = "cprotobuf"
+version = "0.1.12"
+description = "pythonic and high performance protocol buffer implementation."
+authors = [
+    {name = "huangyi", email = "yi.codeplayer@gmail.com"},
+]
+readme = "README.rst"
+requires-python = ">=3.7"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Zig",
+]
+
+[project.urls]
+Homepage = "https://github.com/yihuang/cprotobuf"
+
+[tool.pydust]
+module = "cprotobuf._native"
+zig-version = "0.12.0"
+
+[[tool.pydust.ext]]
+name = "cprotobuf_native"
+sources = ["src/main.zig", "src/types.zig", "src/encoder.zig", "src/decoder.zig", "src/python.zig"]
+libraries = []
+
+[tool.pydust.ext.bindings]
+Field = { class = "FieldPython" }
+ProtoEntity = { class = "ProtoEntityPython" }
+RepeatedContainer = { class = "RepeatedContainerPython" }
+
+[tool.pydust.ext.functions]
+encode_primitive = "encode_primitive_py"
+decode_primitive = "decode_primitive_py"
+encode_data = "encode_data_py"
+get_proto = "get_proto_py"
+register_proto = "register_proto_py"
+
+[project.scripts]
+protoc-gen-cprotobuf = "cprotobuf.plugin:main"
